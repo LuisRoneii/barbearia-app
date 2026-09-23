@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Train Barber — Barbearia</title>
-<meta name="description" content="Train Barber. Precisão e estilo em cada corte. Agende seu horário online.">
+<meta name="description" content="Train Barber. Precisão e estilo em cada corte. Agende seu horário online com o profissional que você preferir.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,9 +26,10 @@
     </a>
 
     <nav class="nav" id="nav">
+      <a href="#equipe">Equipe</a>
       <a href="#servicos">Serviços</a>
+      <a href="#portfolio">Portfólio</a>
       <a href="#agendar">Agendar</a>
-      <a href="#sobre">Sobre</a>
       <a href="#contato">Contato</a>
     </nav>
 
@@ -41,11 +42,11 @@
   </div>
 </header>
 
-<!-- menu mobile -->
 <div class="mobile-nav" id="mobile-nav">
+  <a href="#equipe">Equipe</a>
   <a href="#servicos">Serviços</a>
+  <a href="#portfolio">Portfólio</a>
   <a href="#agendar">Agendar</a>
-  <a href="#sobre">Sobre</a>
   <a href="#contato">Contato</a>
 </div>
 
@@ -74,13 +75,13 @@
         <p class="section-label">Sobre</p>
         <h2>Corte é ofício, não pressa.</h2>
         <p>
-          A Train Barber nasceu do trabalho de um único barbeiro que decidiu fazer do corte
+          A Train Barber nasceu do trabalho de um barbeiro que decidiu fazer do corte
           uma assinatura. Ambiente simples, atendimento direto e um padrão que não muda:
           técnica apurada em cada detalhe, do degradê ao acabamento da barba.
         </p>
         <p>
-          Aqui não tem enrolação. Você marca o horário, chega, senta na cadeira — e sai
-          diferente.
+          Hoje a equipe cresceu, mas o método continua o mesmo. Você marca o horário com
+          quem preferir, chega, senta na cadeira — e sai diferente.
         </p>
       </div>
       <ul class="sobre__stats">
@@ -91,50 +92,51 @@
     </div>
   </section>
 
+  <!-- ===== EQUIPE ===== -->
+  <section class="equipe" id="equipe">
+    <div class="container">
+      <p class="section-label">Equipe</p>
+      <h2 class="equipe__title">Escolha quem vai te atender</h2>
+      <p class="equipe__sub">Cada barbeiro tem sua própria agenda e especialidade. Conheça o time.</p>
+
+      <ul class="equipe__lista" id="lista-equipe">
+        <!-- preenchido também via JS -->
+      </ul>
+    </div>
+  </section>
+
   <!-- ===== SERVIÇOS ===== -->
   <section class="servicos" id="servicos">
     <div class="container">
       <p class="section-label">Serviços</p>
       <h2 class="servicos__title">O que fazemos</h2>
 
-      <ul class="servicos__lista" id="lista-servicos">
-        <!-- preenchido também via JS para alimentar o select de agendamento,
-             mas já renderizado aqui em HTML puro para funcionar sem JS -->
-        <li class="servico" data-preco="45" data-duracao="30">
-          <div class="servico__nome">Corte Masculino</div>
-          <div class="servico__desc">Corte na tesoura e máquina, acabamento na navalha.</div>
-          <div class="servico__meta"><span>30 min</span><span class="servico__preco">R$ 45</span></div>
-        </li>
-        <li class="servico" data-preco="35" data-duracao="25">
-          <div class="servico__nome">Barba</div>
-          <div class="servico__desc">Toalha quente, alinhamento e hidratação.</div>
-          <div class="servico__meta"><span>25 min</span><span class="servico__preco">R$ 35</span></div>
-        </li>
-        <li class="servico" data-preco="70" data-duracao="55">
-          <div class="servico__nome">Combo Corte + Barba</div>
-          <div class="servico__desc">O pacote completo, do topo ao queixo.</div>
-          <div class="servico__meta"><span>55 min</span><span class="servico__preco">R$ 70</span></div>
-        </li>
-        <li class="servico" data-preco="20" data-duracao="15">
-          <div class="servico__nome">Sobrancelha</div>
-          <div class="servico__desc">Alinhamento na navalha ou pinça.</div>
-          <div class="servico__meta"><span>15 min</span><span class="servico__preco">R$ 20</span></div>
-        </li>
-        <li class="servico" data-preco="50" data-duracao="40">
-          <div class="servico__nome">Pigmentação</div>
-          <div class="servico__desc">Disfarce de falhas ou entradas.</div>
-          <div class="servico__meta"><span>40 min</span><span class="servico__preco">R$ 50</span></div>
-        </li>
-        <li class="servico" data-preco="30" data-duracao="25">
-          <div class="servico__nome">Corte Infantil</div>
-          <div class="servico__desc">Para os pequenos, com paciência.</div>
-          <div class="servico__meta"><span>25 min</span><span class="servico__preco">R$ 30</span></div>
-        </li>
-      </ul>
+      <ul class="servicos__lista" id="lista-servicos"></ul>
     </div>
   </section>
 
-  <!-- ===== AGENDAMENTO ===== -->
+  <!-- ===== PORTFÓLIO ===== -->
+  <section class="portfolio" id="portfolio">
+    <div class="container">
+      <p class="section-label">Portfólio</p>
+      <h2 class="portfolio__title">Trabalhos recentes</h2>
+      <p class="portfolio__sub">Substitua estes espaços pelas fotos reais dos cortes assim que tiver o material.</p>
+
+      <ul class="portfolio__grid" id="lista-portfolio"></ul>
+    </div>
+  </section>
+
+  <!-- ===== DEPOIMENTOS ===== -->
+  <section class="depoimentos">
+    <div class="container">
+      <p class="section-label">Depoimentos</p>
+      <h2 class="depoimentos__title">Quem já passou pela cadeira</h2>
+
+      <ul class="depoimentos__lista" id="lista-depoimentos"></ul>
+    </div>
+  </section>
+
+  <!-- ===== AGENDAMENTO (wizard) ===== -->
   <section class="agendar" id="agendar">
     <div class="container">
       <p class="section-label">Agendamento</p>
@@ -154,29 +156,40 @@
       <div class="agendar__box agendar__box--logado hidden" id="box-logado-dentro">
         <p class="agendar__saudacao">Olá, <span id="nome-usuario-logado">—</span>. Vamos marcar seu horário.</p>
 
-        <form id="form-agendamento" class="form-agendamento" novalidate>
-          <div class="form-row">
-            <label for="ag-servico">Serviço</label>
-            <select id="ag-servico" required></select>
-          </div>
+        <!-- indicador de passos -->
+        <ol class="wizard__steps" id="wizard-steps">
+          <li data-step="1" class="is-active">Serviço</li>
+          <li data-step="2">Profissional</li>
+          <li data-step="3">Dia</li>
+          <li data-step="4">Horário</li>
+        </ol>
 
-          <div class="form-row form-row--split">
-            <div>
-              <label for="ag-data">Data</label>
-              <input type="date" id="ag-data" required>
-            </div>
-            <div>
-              <label for="ag-horario">Horário</label>
-              <select id="ag-horario" required>
-                <option value="">Escolha a data primeiro</option>
-              </select>
-            </div>
-          </div>
+        <!-- Passo 1: serviço -->
+        <div class="wizard__step is-active" data-step-panel="1">
+          <ul class="wizard__opcoes" id="wizard-servicos"></ul>
+        </div>
 
+        <!-- Passo 2: profissional -->
+        <div class="wizard__step" data-step-panel="2">
+          <ul class="wizard__opcoes wizard__opcoes--barbeiros" id="wizard-barbeiros"></ul>
+          <button class="link-voltar" data-voltar="1">&larr; Voltar</button>
+        </div>
+
+        <!-- Passo 3: dia -->
+        <div class="wizard__step" data-step-panel="3">
+          <p class="wizard__aviso">Terça a sábado, 9h às 19h. Mostrando os próximos dias com vaga.</p>
+          <ul class="wizard__dias" id="wizard-dias"></ul>
+          <button class="link-voltar" data-voltar="2">&larr; Voltar</button>
+        </div>
+
+        <!-- Passo 4: horário -->
+        <div class="wizard__step" data-step-panel="4">
+          <ul class="wizard__horarios" id="wizard-horarios"></ul>
           <p class="form-msg" id="msg-agendamento" role="status"></p>
-
-          <button type="submit" class="btn btn--primary">Confirmar agendamento</button>
-        </form>
+          <div class="wizard__resumo" id="wizard-resumo"></div>
+          <button class="btn btn--primary" id="btn-confirmar-agendamento">Confirmar agendamento</button>
+          <button class="link-voltar" data-voltar="3">&larr; Voltar</button>
+        </div>
 
         <div class="meus-agendamentos" id="meus-agendamentos">
           <h3>Seus próximos horários</h3>
@@ -185,6 +198,16 @@
 
         <button class="link-sair" id="btn-sair">Sair da conta</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="faq">
+    <div class="container">
+      <p class="section-label">Dúvidas</p>
+      <h2 class="faq__title">Perguntas frequentes</h2>
+
+      <ul class="faq__lista" id="lista-faq"></ul>
     </div>
   </section>
 

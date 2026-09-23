@@ -1,9 +1,11 @@
 /* ==========================================================================
    TRAIN BARBER — script.js
-   Cadastro, login e agendamento rodando 100% no navegador via localStorage.
-   ⚠️ Isso é uma simulação para portfólio/demo: os dados ficam só neste
-   navegador. Para uso real em produção, troque as funções db*() abaixo
-   por chamadas a um backend de verdade (Node/Express, Firebase, etc).
+   Cadastro, login e agendamento (por profissional) rodando 100% no
+   navegador via localStorage.
+   ⚠️ Simulação para portfólio/demo: os dados ficam só neste navegador.
+   Para produção real, troque as funções db*() por chamadas a um backend
+   de verdade (Node/Express, Firebase, etc) e mova BARBEIROS/SERVICOS
+   pra vir de uma API.
    ========================================================================== */
 
 (() => {
@@ -24,21 +26,17 @@
       return fallback;
     }
   }
-  function dbSet(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
+  function dbSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
   function getUsers() { return dbGet(DB_USERS, []); }
   function saveUsers(users) { dbSet(DB_USERS, users); }
-
   function getAppointments() { return dbGet(DB_APPOINTMENTS, []); }
   function saveAppointments(list) { dbSet(DB_APPOINTMENTS, list); }
-
   function getSession() { return dbGet(DB_SESSION, null); }
   function setSession(email) { dbSet(DB_SESSION, email); }
   function clearSession() { localStorage.removeItem(DB_SESSION); }
 
-  // hash simples só para não guardar a senha em texto puro no localStorage.
+  // hash simples só pra não guardar a senha em texto puro no localStorage.
   // NÃO é criptografia segura — trocar por hash real (bcrypt etc) no backend.
   function hashSenha(senha) {
     let hash = 0;
@@ -50,7 +48,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Serviços (mesmos dados usados no HTML)
+     Dados: serviços, barbeiros, portfólio, depoimentos, FAQ
   --------------------------------------------------------------------- */
   const SERVICOS = [
     { id: "corte", nome: "Corte Masculino", duracao: 30, preco: 45 },
@@ -61,9 +59,39 @@
     { id: "infantil", nome: "Corte Infantil", duracao: 25, preco: 30 },
   ];
 
-  const HORARIO_INICIO = 9;  // 09:00
-  const HORARIO_FIM = 19;    // 19:00
-  const INTERVALO_MIN = 30;  // grade de horários de 30 em 30 min
+  // troque nomes/especialidades/iniciais pelos barbeiros reais
+  const BARBEIROS = [
+    { id: "lucas", nome: "Lucas Train", especialidade: "Degradê e barba desenhada" },
+    { id: "rafael", nome: "Rafael Nunes", especialidade: "Cortes clássicos e navalhado" },
+    { id: "enzo", nome: "Enzo Lima", especialidade: "Coloração e platinado" },
+  ];
+
+  const PORTFOLIO_PLACEHOLDERS = [
+    "Degradê navalhado", "Barba desenhada", "Corte social", "Platinado",
+    "Combo completo", "Pompadour", "Risco lateral", "Infantil",
+  ];
+
+  const DEPOIMENTOS = [
+    { texto: "Marquei pelo site, cheguei e já fui atendido no horário certo. Corte impecável.", autor: "Gabriel M." },
+    { texto: "O Lucas entende exatamente o que eu peço. Não troco de barbeiro há 2 anos.", autor: "Diego A." },
+    { texto: "Ambiente simples, sem enrolação, e o resultado sempre vem melhor do que eu esperava.", autor: "Rafael S." },
+  ];
+
+  const FAQ = [
+    { pergunta: "Preciso criar conta pra agendar?", resposta: "Sim. É rápido: nome, e-mail, telefone e senha. Assim você acompanha seus horários marcados." },
+    { pergunta: "Posso escolher o barbeiro?", resposta: "Sim, o agendamento é feito escolhendo o profissional e depois vendo só os horários livres na agenda dele." },
+    { pergunta: "Como cancelo ou remarco um horário?", resposta: "Chame no WhatsApp com o máximo de antecedência possível — o link está na seção de contato." },
+    { pergunta: "Quais as formas de pagamento?", resposta: "Dinheiro, PIX e cartão de débito/crédito." },
+  ];
+
+  // dias da semana em que a barbearia funciona (0 = domingo ... 6 = sábado)
+  const DIAS_FUNCIONAMENTO = [2, 3, 4, 5, 6]; // terça a sábado
+  const HORARIO_INICIO = 9;   // 09:00
+  const HORARIO_FIM = 19;     // 19:00
+  const INTERVALO_MIN = 30;   // grade de horários de 30 em 30 min
+  const DIAS_PARA_MOSTRAR = 7; // quantos dias futuros oferecer no passo 3
+
+  const NOME_DIA_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
   /* ---------------------------------------------------------------------
      Elementos
@@ -90,10 +118,13 @@
   const boxLogadoDentro = document.getElementById("box-logado-dentro");
   const nomeUsuarioLogado = document.getElementById("nome-usuario-logado");
 
-  const formAgendamento = document.getElementById("form-agendamento");
-  const selectServico = document.getElementById("ag-servico");
-  const inputData = document.getElementById("ag-data");
-  const selectHorario = document.getElementById("ag-horario");
+  const wizardSteps = document.getElementById("wizard-steps");
+  const wizardServicos = document.getElementById("wizard-servicos");
+  const wizardBarbeiros = document.getElementById("wizard-barbeiros");
+  const wizardDias = document.getElementById("wizard-dias");
+  const wizardHorarios = document.getElementById("wizard-horarios");
+  const wizardResumo = document.getElementById("wizard-resumo");
+  const btnConfirmarAgendamento = document.getElementById("btn-confirmar-agendamento");
   const msgAgendamento = document.getElementById("msg-agendamento");
   const listaAgendamentos = document.getElementById("lista-agendamentos");
 
@@ -109,10 +140,6 @@
       mobileNav.classList.remove("is-open");
       hamburger.setAttribute("aria-expanded", "false");
     });
-  });
-
-  window.addEventListener("scroll", () => {
-    header.style.borderBottomColor = window.scrollY > 4 ? "#232323" : "#232323";
   });
 
   /* ---------------------------------------------------------------------
@@ -138,12 +165,8 @@
   tabLogin.addEventListener("click", () => trocarAba("login"));
   tabCadastro.addEventListener("click", () => trocarAba("cadastro"));
   modalFechar.addEventListener("click", fecharModal);
-  modalOverlay.addEventListener("click", (e) => {
-    if (e.target === modalOverlay) fecharModal();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") fecharModal();
-  });
+  modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) fecharModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharModal(); });
 
   btnAbrirCadastro.addEventListener("click", () => abrirModal("cadastro"));
   btnAbrirLogin.addEventListener("click", () => abrirModal("login"));
@@ -157,7 +180,7 @@
   });
 
   /* ---------------------------------------------------------------------
-     Cadastro
+     Cadastro / login
   --------------------------------------------------------------------- */
   formCadastro.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -170,52 +193,33 @@
       mostrarMsg(msgCadastro, "Preencha todos os campos (senha com 4+ caracteres).", true);
       return;
     }
-
     const users = getUsers();
     if (users.some((u) => u.email === email)) {
       mostrarMsg(msgCadastro, "Já existe uma conta com esse e-mail.", true);
       return;
     }
-
     users.push({ nome, email, telefone, senhaHash: hashSenha(senha) });
     saveUsers(users);
     setSession(email);
-
     mostrarMsg(msgCadastro, "Conta criada com sucesso!", false);
-    setTimeout(() => {
-      fecharModal();
-      atualizarEstadoConta();
-    }, 500);
+    setTimeout(() => { fecharModal(); atualizarEstadoConta(); }, 500);
   });
 
-  /* ---------------------------------------------------------------------
-     Login
-  --------------------------------------------------------------------- */
   formLogin.addEventListener("submit", (e) => {
     e.preventDefault();
     const email = document.getElementById("login-email").value.trim().toLowerCase();
     const senha = document.getElementById("login-senha").value;
-
-    const users = getUsers();
-    const user = users.find((u) => u.email === email);
-
+    const user = getUsers().find((u) => u.email === email);
     if (!user || user.senhaHash !== hashSenha(senha)) {
       mostrarMsg(msgLogin, "E-mail ou senha incorretos.", true);
       return;
     }
-
     setSession(email);
     mostrarMsg(msgLogin, "Login realizado!", false);
-    setTimeout(() => {
-      fecharModal();
-      atualizarEstadoConta();
-    }, 400);
+    setTimeout(() => { fecharModal(); atualizarEstadoConta(); }, 400);
   });
 
-  btnSair.addEventListener("click", () => {
-    clearSession();
-    atualizarEstadoConta();
-  });
+  btnSair.addEventListener("click", () => { clearSession(); atualizarEstadoConta(); });
 
   function mostrarMsg(el, texto, erro) {
     el.textContent = texto;
@@ -223,9 +227,6 @@
     el.classList.toggle("is-ok", !erro);
   }
 
-  /* ---------------------------------------------------------------------
-     Estado da conta / seção de agendamento
-  --------------------------------------------------------------------- */
   function usuarioAtual() {
     const email = getSession();
     if (!email) return null;
@@ -239,6 +240,7 @@
       boxLogadoDentro.classList.remove("hidden");
       nomeUsuarioLogado.textContent = user.nome.split(" ")[0];
       btnConta.textContent = "Minha agenda";
+      resetarWizard();
       renderizarMeusAgendamentos();
     } else {
       boxLogadoFora.classList.remove("hidden");
@@ -248,111 +250,273 @@
   }
 
   /* ---------------------------------------------------------------------
-     Preencher select de serviços
+     Render: equipe (seção estática) / serviços / portfólio / depoimentos / faq
   --------------------------------------------------------------------- */
-  function preencherServicos() {
-    selectServico.innerHTML = "";
+  function renderizarEquipeEstatica() {
+    const ul = document.getElementById("lista-equipe");
+    ul.innerHTML = "";
+    BARBEIROS.forEach((b) => {
+      const li = document.createElement("li");
+      li.className = "barbeiro-card";
+      li.innerHTML = `
+        <div class="barbeiro-card__foto">${iniciais(b.nome)}</div>
+        <p class="barbeiro-card__nome">${b.nome}</p>
+        <p class="barbeiro-card__especialidade">${b.especialidade}</p>`;
+      ul.appendChild(li);
+    });
+  }
+
+  function iniciais(nome) {
+    return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  }
+
+  function renderizarServicosEstatico() {
+    const ul = document.getElementById("lista-servicos");
+    ul.innerHTML = "";
     SERVICOS.forEach((s) => {
-      const opt = document.createElement("option");
-      opt.value = s.id;
-      opt.textContent = `${s.nome} — R$ ${s.preco} (${s.duracao} min)`;
-      selectServico.appendChild(opt);
+      const li = document.createElement("li");
+      li.className = "servico";
+      li.innerHTML = `
+        <div class="servico__nome">${s.nome}</div>
+        <div class="servico__desc">${s.duracao} minutos de atendimento dedicado.</div>
+        <div class="servico__meta"><span>${s.duracao} min</span><span class="servico__preco">R$ ${s.preco}</span></div>`;
+      ul.appendChild(li);
+    });
+  }
+
+  function renderizarPortfolio() {
+    const ul = document.getElementById("lista-portfolio");
+    ul.innerHTML = "";
+    PORTFOLIO_PLACEHOLDERS.forEach((legenda) => {
+      const li = document.createElement("li");
+      li.textContent = legenda;
+      ul.appendChild(li);
+    });
+  }
+
+  function renderizarDepoimentos() {
+    const ul = document.getElementById("lista-depoimentos");
+    ul.innerHTML = "";
+    DEPOIMENTOS.forEach((d) => {
+      const li = document.createElement("li");
+      li.className = "depoimento";
+      li.innerHTML = `
+        <div class="depoimento__estrelas">★★★★★</div>
+        <p class="depoimento__texto">"${d.texto}"</p>
+        <p class="depoimento__autor">${d.autor}</p>`;
+      ul.appendChild(li);
+    });
+  }
+
+  function renderizarFaq() {
+    const ul = document.getElementById("lista-faq");
+    ul.innerHTML = "";
+    FAQ.forEach((item) => {
+      const li = document.createElement("li");
+      li.className = "faq-item";
+      li.innerHTML = `
+        <button class="faq-item__pergunta" type="button">
+          <span>${item.pergunta}</span>
+          <span class="faq-item__icone">+</span>
+        </button>
+        <div class="faq-item__resposta"><p>${item.resposta}</p></div>`;
+      li.querySelector(".faq-item__pergunta").addEventListener("click", () => {
+        li.classList.toggle("is-aberto");
+      });
+      ul.appendChild(li);
     });
   }
 
   /* ---------------------------------------------------------------------
-     Gerar horários disponíveis para a data escolhida
+     Wizard de agendamento
   --------------------------------------------------------------------- */
-  function gerarHorarios(data) {
+  const estado = { servico: null, barbeiro: null, data: null, horario: null };
+
+  function irParaPasso(n) {
+    wizardSteps.querySelectorAll("li").forEach((li) => {
+      const passo = Number(li.dataset.step);
+      li.classList.toggle("is-active", passo === n);
+      li.classList.toggle("is-done", passo < n);
+    });
+    document.querySelectorAll(".wizard__step").forEach((el) => {
+      el.classList.toggle("is-active", Number(el.dataset.stepPanel) === n);
+    });
+  }
+
+  document.querySelectorAll(".link-voltar").forEach((btn) => {
+    btn.addEventListener("click", () => irParaPasso(Number(btn.dataset.voltar)));
+  });
+
+  function resetarWizard() {
+    estado.servico = null;
+    estado.barbeiro = null;
+    estado.data = null;
+    estado.horario = null;
+    msgAgendamento.textContent = "";
+    wizardResumo.classList.remove("is-visivel");
+    renderizarPassoServicos();
+    irParaPasso(1);
+  }
+
+  function renderizarPassoServicos() {
+    wizardServicos.innerHTML = "";
+    SERVICOS.forEach((s) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.innerHTML = `<span class="op__nome">${s.nome}</span><span class="op__meta">R$ ${s.preco} · ${s.duracao} min</span>`;
+      btn.addEventListener("click", () => {
+        estado.servico = s;
+        renderizarPassoBarbeiros();
+        irParaPasso(2);
+      });
+      li.appendChild(btn);
+      wizardServicos.appendChild(li);
+    });
+  }
+
+  function renderizarPassoBarbeiros() {
+    wizardBarbeiros.innerHTML = "";
+    BARBEIROS.forEach((b) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.innerHTML = `<span class="op__nome">${b.nome}</span><span class="op__especialidade">${b.especialidade}</span>`;
+      btn.addEventListener("click", () => {
+        estado.barbeiro = b;
+        renderizarPassoDias();
+        irParaPasso(3);
+      });
+      li.appendChild(btn);
+      wizardBarbeiros.appendChild(li);
+    });
+  }
+
+  // gera a grade fixa de horários do dia (independente de ocupação)
+  function gradeDeHorarios() {
     const horarios = [];
     for (let h = HORARIO_INICIO; h < HORARIO_FIM; h++) {
       for (let m = 0; m < 60; m += INTERVALO_MIN) {
-        horarios.push(
-          `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-        );
+        horarios.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
       }
     }
-
-    const ocupados = getAppointments()
-      .filter((a) => a.data === data)
-      .map((a) => a.horario);
-
-    return horarios.filter((h) => !ocupados.includes(h));
+    return horarios;
   }
 
-  inputData.addEventListener("change", () => {
-    const data = inputData.value;
-    selectHorario.innerHTML = "";
+  function horariosLivres(barbeiroId, dataISO) {
+    const ocupados = getAppointments()
+      .filter((a) => a.barbeiroId === barbeiroId && a.data === dataISO)
+      .map((a) => a.horario);
+    return gradeDeHorarios().filter((h) => !ocupados.includes(h));
+  }
 
-    if (!data) {
-      selectHorario.innerHTML = "<option value=''>Escolha a data primeiro</option>";
-      return;
+  function proximosDiasUteis(qtd) {
+    const dias = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    while (dias.length < qtd) {
+      if (DIAS_FUNCIONAMENTO.includes(cursor.getDay())) {
+        dias.push(new Date(cursor));
+      }
+      cursor.setDate(cursor.getDate() + 1);
     }
+    return dias;
+  }
 
-    const disponiveis = gerarHorarios(data);
-    if (disponiveis.length === 0) {
-      selectHorario.innerHTML = "<option value=''>Sem horários livres nesse dia</option>";
-      return;
-    }
+  function paraISO(date) {
+    return date.toISOString().split("T")[0];
+  }
 
-    disponiveis.forEach((h) => {
-      const opt = document.createElement("option");
-      opt.value = h;
-      opt.textContent = h;
-      selectHorario.appendChild(opt);
+  function renderizarPassoDias() {
+    wizardDias.innerHTML = "";
+    const dias = proximosDiasUteis(DIAS_PARA_MOSTRAR);
+
+    dias.forEach((date) => {
+      const iso = paraISO(date);
+      const livres = horariosLivres(estado.barbeiro.id, iso);
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.disabled = livres.length === 0;
+      if (livres.length === 0) btn.style.opacity = "0.35";
+      btn.innerHTML = `
+        <span class="dia__semana">${NOME_DIA_SEMANA[date.getDay()]}</span>
+        <span class="dia__numero">${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}</span>`;
+      btn.addEventListener("click", () => {
+        estado.data = iso;
+        renderizarPassoHorarios();
+        irParaPasso(4);
+      });
+      li.appendChild(btn);
+      wizardDias.appendChild(li);
     });
-  });
+  }
 
-  /* ---------------------------------------------------------------------
-     Enviar agendamento
-  --------------------------------------------------------------------- */
-  formAgendamento.addEventListener("submit", (e) => {
-    e.preventDefault();
+  function renderizarPassoHorarios() {
+    estado.horario = null;
+    wizardResumo.classList.remove("is-visivel");
+    msgAgendamento.textContent = "";
+    wizardHorarios.innerHTML = "";
+
+    const livres = horariosLivres(estado.barbeiro.id, estado.data);
+    livres.forEach((h) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = h;
+      btn.addEventListener("click", () => {
+        estado.horario = h;
+        wizardHorarios.querySelectorAll("button").forEach((b) => b.classList.remove("is-selecionado"));
+        btn.classList.add("is-selecionado");
+        mostrarResumo();
+      });
+      li.appendChild(btn);
+      wizardHorarios.appendChild(li);
+    });
+  }
+
+  function mostrarResumo() {
+    const [ano, mes, dia] = estado.data.split("-");
+    wizardResumo.innerHTML = `
+      <strong>${estado.servico.nome}</strong> com <strong>${estado.barbeiro.nome}</strong><br>
+      ${dia}/${mes}/${ano} às <strong>${estado.horario}</strong> · R$ ${estado.servico.preco}`;
+    wizardResumo.classList.add("is-visivel");
+  }
+
+  btnConfirmarAgendamento.addEventListener("click", () => {
     const user = usuarioAtual();
-    if (!user) {
-      abrirModal("login");
-      return;
-    }
+    if (!user) { abrirModal("login"); return; }
 
-    const servicoId = selectServico.value;
-    const data = inputData.value;
-    const horario = selectHorario.value;
-
-    if (!servicoId || !data || !horario) {
-      mostrarMsg(msgAgendamento, "Preencha serviço, data e horário.", true);
-      return;
-    }
-
-    const hoje = new Date().toISOString().split("T")[0];
-    if (data < hoje) {
-      mostrarMsg(msgAgendamento, "Escolha uma data a partir de hoje.", true);
+    if (!estado.servico || !estado.barbeiro || !estado.data || !estado.horario) {
+      mostrarMsg(msgAgendamento, "Escolha um horário antes de confirmar.", true);
       return;
     }
 
     const agendamentos = getAppointments();
-    const conflito = agendamentos.some((a) => a.data === data && a.horario === horario);
+    const conflito = agendamentos.some(
+      (a) => a.barbeiroId === estado.barbeiro.id && a.data === estado.data && a.horario === estado.horario
+    );
     if (conflito) {
       mostrarMsg(msgAgendamento, "Esse horário acabou de ser reservado. Escolha outro.", true);
-      inputData.dispatchEvent(new Event("change"));
+      renderizarPassoHorarios();
       return;
     }
 
-    const servico = SERVICOS.find((s) => s.id === servicoId);
     agendamentos.push({
       id: Date.now().toString(36),
       clienteEmail: user.email,
       clienteNome: user.nome,
-      servico: servico.nome,
-      data,
-      horario,
+      servico: estado.servico.nome,
+      barbeiroId: estado.barbeiro.id,
+      barbeiroNome: estado.barbeiro.nome,
+      data: estado.data,
+      horario: estado.horario,
     });
     saveAppointments(agendamentos);
 
     mostrarMsg(msgAgendamento, "Horário confirmado!", false);
-    formAgendamento.reset();
-    selectHorario.innerHTML = "<option value=''>Escolha a data primeiro</option>";
-    preencherServicos();
     renderizarMeusAgendamentos();
+    setTimeout(resetarWizard, 900);
   });
 
   /* ---------------------------------------------------------------------
@@ -367,7 +531,6 @@
       .sort((a, b) => (a.data + a.horario).localeCompare(b.data + b.horario));
 
     listaAgendamentos.innerHTML = "";
-
     if (meus.length === 0) {
       const li = document.createElement("li");
       li.className = "vazio";
@@ -375,18 +538,12 @@
       listaAgendamentos.appendChild(li);
       return;
     }
-
     meus.forEach((a) => {
       const li = document.createElement("li");
-      const dataFormatada = formatarData(a.data);
-      li.innerHTML = `<span>${a.servico}</span><span>${dataFormatada} · ${a.horario}</span>`;
+      const [ano, mes, dia] = a.data.split("-");
+      li.innerHTML = `<span>${a.servico} · ${a.barbeiroNome}</span><span>${dia}/${mes}/${ano} · ${a.horario}</span>`;
       listaAgendamentos.appendChild(li);
     });
-  }
-
-  function formatarData(iso) {
-    const [ano, mes, dia] = iso.split("-");
-    return `${dia}/${mes}/${ano}`;
   }
 
   /* ---------------------------------------------------------------------
@@ -394,8 +551,11 @@
   --------------------------------------------------------------------- */
   function init() {
     document.getElementById("ano").textContent = new Date().getFullYear();
-    inputData.min = new Date().toISOString().split("T")[0];
-    preencherServicos();
+    renderizarEquipeEstatica();
+    renderizarServicosEstatico();
+    renderizarPortfolio();
+    renderizarDepoimentos();
+    renderizarFaq();
     atualizarEstadoConta();
   }
 

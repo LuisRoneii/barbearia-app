@@ -348,6 +348,143 @@ p { margin: 0 0 1em; color: var(--gray); }
   font-size: 1.05rem;
 }
 
+/* ---------- Equipe ---------- */
+.equipe {
+  padding: 100px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--black-soft);
+}
+.equipe__title { font-size: 2rem; max-width: 20ch; }
+.equipe__sub { max-width: 48ch; margin-bottom: 40px; }
+
+.equipe__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.barbeiro-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  background: var(--black-elev);
+}
+.barbeiro-card__foto {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  background: var(--black);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--neon);
+  font-family: var(--font-display);
+  font-size: 2rem;
+}
+.barbeiro-card__nome {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+.barbeiro-card__especialidade {
+  color: var(--gray);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* ---------- Portfólio ---------- */
+.portfolio { padding: 100px 0; border-bottom: 1px solid var(--line); }
+.portfolio__title { font-size: 2rem; }
+.portfolio__sub { max-width: 52ch; margin-bottom: 40px; }
+
+.portfolio__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.portfolio__grid li {
+  aspect-ratio: 3 / 4;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-soft);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 12px;
+}
+
+/* ---------- Depoimentos ---------- */
+.depoimentos { padding: 100px 0; border-bottom: 1px solid var(--line); background: var(--black-soft); }
+.depoimentos__title { font-size: 2rem; margin-bottom: 40px; }
+
+.depoimentos__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.depoimento {
+  border-left: 2px solid var(--neon);
+  padding-left: 20px;
+}
+.depoimento__estrelas { color: var(--neon); font-size: 0.85rem; margin-bottom: 10px; letter-spacing: 2px; }
+.depoimento__texto { color: var(--white); font-size: 0.95rem; margin-bottom: 12px; }
+.depoimento__autor { color: var(--gray); font-size: 0.85rem; }
+
+/* ---------- FAQ ---------- */
+.faq { padding: 100px 0; border-bottom: 1px solid var(--line); }
+.faq__title { font-size: 2rem; margin-bottom: 40px; }
+
+.faq__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item__pergunta {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  padding: 20px 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.faq-item__pergunta:hover { color: var(--neon); }
+.faq-item__icone {
+  color: var(--neon);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.faq-item.is-aberto .faq-item__icone { transform: rotate(45deg); }
+.faq-item__resposta {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.faq-item.is-aberto .faq-item__resposta { max-height: 200px; }
+.faq-item__resposta p { padding-bottom: 20px; margin: 0; max-width: 60ch; }
+
 /* ---------- Agendar ---------- */
 .agendar {
   padding: 100px 0;
@@ -371,20 +508,6 @@ p { margin: 0 0 1em; color: var(--gray); }
 }
 .agendar__saudacao { color: var(--white); }
 
-.form-agendamento {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 8px;
-}
-.form-row { display: flex; flex-direction: column; gap: 6px; }
-.form-row--split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.form-row--split > div { display: flex; flex-direction: column; gap: 6px; }
-
 label {
   font-size: 0.85rem;
   color: var(--gray);
@@ -403,6 +526,160 @@ input, select {
 input:focus, select:focus {
   border-color: var(--neon);
 }
+
+/* ---------- Wizard de agendamento ---------- */
+.wizard__steps {
+  display: flex;
+  gap: 22px;
+  list-style: none;
+  margin: 28px 0 32px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.wizard__steps li {
+  font-size: 0.85rem;
+  color: var(--gray-soft);
+  position: relative;
+  padding-bottom: 14px;
+}
+.wizard__steps li.is-active { color: var(--neon); }
+.wizard__steps li.is-done { color: var(--white); }
+.wizard__steps li.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -17px;
+  width: 100%; height: 2px;
+  background: var(--neon);
+}
+
+.wizard__step { display: none; }
+.wizard__step.is-active { display: block; }
+
+.wizard__aviso {
+  font-size: 0.85rem;
+  color: var(--gray-soft);
+  margin-bottom: 16px;
+}
+
+.wizard__opcoes {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wizard__opcoes button {
+  width: 100%;
+  text-align: left;
+  background: var(--black);
+  border: 1px solid var(--line);
+  color: var(--white);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-body);
+  transition: border-color 0.15s ease;
+}
+.wizard__opcoes button:hover,
+.wizard__opcoes button:focus-visible { border-color: var(--neon); }
+.wizard__opcoes button .op__nome { font-weight: 600; }
+.wizard__opcoes button .op__meta { color: var(--gray); font-size: 0.85rem; white-space: nowrap; }
+
+.wizard__opcoes--barbeiros button { align-items: flex-start; flex-direction: column; gap: 4px; }
+.wizard__opcoes--barbeiros .op__especialidade { color: var(--gray); font-size: 0.85rem; font-weight: 400; }
+
+.wizard__dias {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+.wizard__dias button {
+  background: var(--black);
+  border: 1px solid var(--line);
+  color: var(--white);
+  padding: 14px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font-body);
+  transition: border-color 0.15s ease;
+}
+.wizard__dias button:hover,
+.wizard__dias button:focus-visible { border-color: var(--neon); }
+.wizard__dias .dia__semana {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gray);
+  text-transform: capitalize;
+}
+.wizard__dias .dia__numero {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-top: 2px;
+}
+
+.wizard__horarios {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+.wizard__horarios button {
+  background: var(--black);
+  border: 1px solid var(--line);
+  color: var(--white);
+  padding: 10px 6px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.wizard__horarios button:hover,
+.wizard__horarios button:focus-visible { border-color: var(--neon); }
+.wizard__horarios button.is-selecionado {
+  background: var(--neon);
+  color: #05161a;
+  border-color: var(--neon);
+  font-weight: 600;
+}
+
+.wizard__resumo {
+  background: var(--black);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--gray);
+  display: none;
+}
+.wizard__resumo.is-visivel { display: block; }
+.wizard__resumo strong { color: var(--white); }
+
+.link-voltar {
+  display: block;
+  background: none;
+  border: none;
+  color: var(--gray-soft);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 4px;
+}
+.link-voltar:hover { color: var(--neon); }
 
 .form-msg {
   font-size: 0.85rem;
@@ -589,6 +866,11 @@ input:focus, select:focus {
     gap: 6px;
   }
   .servico__meta { gap: 14px; }
+
+  .equipe__lista,
+  .depoimentos__lista { grid-template-columns: 1fr; }
+  .portfolio__grid { grid-template-columns: repeat(2, 1fr); }
+  .wizard__steps { gap: 14px; }
 }
 
 @media (max-width: 520px) {
