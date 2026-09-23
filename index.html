@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Train Barber — Barbearia</title>
+<meta name="description" content="Train Barber. Precisão e estilo em cada corte. Agende seu horário online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header" id="header">
+  <div class="container header__inner">
+    <a href="#topo" class="logo" aria-label="Train Barber - início">
+      <svg class="logo__scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="6" cy="6" r="2.6"></circle>
+        <circle cx="6" cy="18" r="2.6"></circle>
+        <line x1="8.1" y1="7.6" x2="20.5" y2="18.5"></line>
+        <line x1="8.1" y1="16.4" x2="20.5" y2="5.5"></line>
+      </svg>
+      <span class="logo__word"><span class="logo__train">Train</span><span class="logo__barber">Barber</span></span>
+    </a>
+
+    <nav class="nav" id="nav">
+      <a href="#servicos">Serviços</a>
+      <a href="#agendar">Agendar</a>
+      <a href="#sobre">Sobre</a>
+      <a href="#contato">Contato</a>
+    </nav>
+
+    <div class="header__actions">
+      <button class="btn btn--ghost" id="btn-conta">Minha conta</button>
+      <button class="hamburger" id="hamburger" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- menu mobile -->
+<div class="mobile-nav" id="mobile-nav">
+  <a href="#servicos">Serviços</a>
+  <a href="#agendar">Agendar</a>
+  <a href="#sobre">Sobre</a>
+  <a href="#contato">Contato</a>
+</div>
+
+<main id="topo">
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="container hero__inner">
+      <p class="hero__eyebrow">Barbearia</p>
+      <h1 class="hero__title">
+        <span class="hero__train">TRAIN</span><span class="hero__barber">BARBER</span>
+      </h1>
+      <span class="hero__rule" aria-hidden="true"></span>
+      <p class="hero__tagline">Precisão e estilo em cada corte.</p>
+      <div class="hero__actions">
+        <a href="#agendar" class="btn btn--primary">Agendar horário</a>
+        <a href="#servicos" class="btn btn--outline">Ver serviços</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SOBRE ===== -->
+  <section class="sobre" id="sobre">
+    <div class="container sobre__inner">
+      <div class="sobre__text">
+        <p class="section-label">Sobre</p>
+        <h2>Corte é ofício, não pressa.</h2>
+        <p>
+          A Train Barber nasceu do trabalho de um único barbeiro que decidiu fazer do corte
+          uma assinatura. Ambiente simples, atendimento direto e um padrão que não muda:
+          técnica apurada em cada detalhe, do degradê ao acabamento da barba.
+        </p>
+        <p>
+          Aqui não tem enrolação. Você marca o horário, chega, senta na cadeira — e sai
+          diferente.
+        </p>
+      </div>
+      <ul class="sobre__stats">
+        <li><span class="sobre__num">+2.500</span><span class="sobre__label">cortes realizados</span></li>
+        <li><span class="sobre__num">4.9</span><span class="sobre__label">avaliação média</span></li>
+        <li><span class="sobre__num">100%</span><span class="sobre__label">agenda online</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== SERVIÇOS ===== -->
+  <section class="servicos" id="servicos">
+    <div class="container">
+      <p class="section-label">Serviços</p>
+      <h2 class="servicos__title">O que fazemos</h2>
+
+      <ul class="servicos__lista" id="lista-servicos">
+        <!-- preenchido também via JS para alimentar o select de agendamento,
+             mas já renderizado aqui em HTML puro para funcionar sem JS -->
+        <li class="servico" data-preco="45" data-duracao="30">
+          <div class="servico__nome">Corte Masculino</div>
+          <div class="servico__desc">Corte na tesoura e máquina, acabamento na navalha.</div>
+          <div class="servico__meta"><span>30 min</span><span class="servico__preco">R$ 45</span></div>
+        </li>
+        <li class="servico" data-preco="35" data-duracao="25">
+          <div class="servico__nome">Barba</div>
+          <div class="servico__desc">Toalha quente, alinhamento e hidratação.</div>
+          <div class="servico__meta"><span>25 min</span><span class="servico__preco">R$ 35</span></div>
+        </li>
+        <li class="servico" data-preco="70" data-duracao="55">
+          <div class="servico__nome">Combo Corte + Barba</div>
+          <div class="servico__desc">O pacote completo, do topo ao queixo.</div>
+          <div class="servico__meta"><span>55 min</span><span class="servico__preco">R$ 70</span></div>
+        </li>
+        <li class="servico" data-preco="20" data-duracao="15">
+          <div class="servico__nome">Sobrancelha</div>
+          <div class="servico__desc">Alinhamento na navalha ou pinça.</div>
+          <div class="servico__meta"><span>15 min</span><span class="servico__preco">R$ 20</span></div>
+        </li>
+        <li class="servico" data-preco="50" data-duracao="40">
+          <div class="servico__nome">Pigmentação</div>
+          <div class="servico__desc">Disfarce de falhas ou entradas.</div>
+          <div class="servico__meta"><span>40 min</span><span class="servico__preco">R$ 50</span></div>
+        </li>
+        <li class="servico" data-preco="30" data-duracao="25">
+          <div class="servico__nome">Corte Infantil</div>
+          <div class="servico__desc">Para os pequenos, com paciência.</div>
+          <div class="servico__meta"><span>25 min</span><span class="servico__preco">R$ 30</span></div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== AGENDAMENTO ===== -->
+  <section class="agendar" id="agendar">
+    <div class="container">
+      <p class="section-label">Agendamento</p>
+      <h2 class="agendar__title">Marque seu horário</h2>
+      <p class="agendar__sub">O agendamento é feito com sua conta Train Barber. Leva menos de um minuto.</p>
+
+      <!-- Estado: deslogado -->
+      <div class="agendar__box" id="box-logado-fora">
+        <p>Você precisa entrar ou criar uma conta para agendar.</p>
+        <div class="agendar__box-actions">
+          <button class="btn btn--primary" id="btn-abrir-cadastro">Criar conta</button>
+          <button class="btn btn--outline" id="btn-abrir-login">Já tenho conta</button>
+        </div>
+      </div>
+
+      <!-- Estado: logado -->
+      <div class="agendar__box agendar__box--logado hidden" id="box-logado-dentro">
+        <p class="agendar__saudacao">Olá, <span id="nome-usuario-logado">—</span>. Vamos marcar seu horário.</p>
+
+        <form id="form-agendamento" class="form-agendamento" novalidate>
+          <div class="form-row">
+            <label for="ag-servico">Serviço</label>
+            <select id="ag-servico" required></select>
+          </div>
+
+          <div class="form-row form-row--split">
+            <div>
+              <label for="ag-data">Data</label>
+              <input type="date" id="ag-data" required>
+            </div>
+            <div>
+              <label for="ag-horario">Horário</label>
+              <select id="ag-horario" required>
+                <option value="">Escolha a data primeiro</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="form-msg" id="msg-agendamento" role="status"></p>
+
+          <button type="submit" class="btn btn--primary">Confirmar agendamento</button>
+        </form>
+
+        <div class="meus-agendamentos" id="meus-agendamentos">
+          <h3>Seus próximos horários</h3>
+          <ul id="lista-agendamentos"></ul>
+        </div>
+
+        <button class="link-sair" id="btn-sair">Sair da conta</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONTATO ===== -->
+  <section class="contato" id="contato">
+    <div class="container contato__inner">
+      <div>
+        <p class="section-label">Contato</p>
+        <h2>Onde estamos</h2>
+        <ul class="contato__lista">
+          <li><strong>Endereço</strong><span>Rua Exemplo, 123 — Centro</span></li>
+          <li><strong>Horário</strong><span>Terça a sábado, 9h às 19h</span></li>
+          <li><strong>Telefone</strong><span>(00) 00000-0000</span></li>
+          <li><strong>Instagram</strong><span><a href="https://instagram.com/trainbarber" target="_blank" rel="noopener">@trainbarber</a></span></li>
+        </ul>
+      </div>
+      <div class="contato__cta">
+        <p>Prefere combinar direto?</p>
+        <a href="https://wa.me/5500000000000" target="_blank" rel="noopener" class="btn btn--outline">Chamar no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <span class="logo logo--footer">
+      <span class="logo__train">Train</span><span class="logo__barber">Barber</span>
+    </span>
+    <p>&copy; <span id="ano"></span> Train Barber. Todos os direitos reservados.</p>
+  </div>
+</footer>
+
+<!-- ===== MODAL LOGIN / CADASTRO ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <button class="modal__fechar" id="modal-fechar" aria-label="Fechar">&times;</button>
+
+    <div class="modal__tabs">
+      <button class="modal__tab is-active" data-tab="login" id="tab-login">Entrar</button>
+      <button class="modal__tab" data-tab="cadastro" id="tab-cadastro">Criar conta</button>
+    </div>
+
+    <h2 id="modal-titulo" class="sr-only">Acesso à conta</h2>
+
+    <form id="form-login" class="modal__form">
+      <label for="login-email">E-mail</label>
+      <input type="email" id="login-email" required autocomplete="email">
+      <label for="login-senha">Senha</label>
+      <input type="password" id="login-senha" required autocomplete="current-password">
+      <p class="form-msg" id="msg-login" role="status"></p>
+      <button type="submit" class="btn btn--primary">Entrar</button>
+    </form>
+
+    <form id="form-cadastro" class="modal__form hidden">
+      <label for="cad-nome">Nome completo</label>
+      <input type="text" id="cad-nome" required autocomplete="name">
+      <label for="cad-email">E-mail</label>
+      <input type="email" id="cad-email" required autocomplete="email">
+      <label for="cad-telefone">Telefone / WhatsApp</label>
+      <input type="tel" id="cad-telefone" required placeholder="(00) 00000-0000">
+      <label for="cad-senha">Senha</label>
+      <input type="password" id="cad-senha" required minlength="4" autocomplete="new-password">
+      <p class="form-msg" id="msg-cadastro" role="status"></p>
+      <button type="submit" class="btn btn--primary">Criar conta</button>
+    </form>
+  </div>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
