@@ -1,6 +1,6 @@
-# Train Barber
+# ZT BARBER
 
-Site institucional e de agendamento online para a barbearia **Train Barber**.
+Site institucional e de agendamento online para a barbearia **ZT BARBER**.
 Projeto desenvolvido em dupla, também usado como peça de portfólio.
 
 ---

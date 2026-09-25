@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TRAIN BARBER — script.js
+   ZT BARBER — script.js
    Cadastro, login e agendamento (por profissional) rodando 100% no
    navegador via localStorage.
    ⚠️ Simulação para portfólio/demo: os dados ficam só neste navegador.
