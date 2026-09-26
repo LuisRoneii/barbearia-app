@@ -403,11 +403,45 @@
     return horarios;
   }
 
-  function horariosLivres(barbeiroId, dataISO) {
+  // "09:30" -> 570 (minutos desde meia-noite)
+  function paraMinutos(hhmm) {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  // duração de um agendamento salvo (registros antigos não tinham o campo)
+  function duracaoDoAgendamento(a) {
+    if (a.duracao) return a.duracao;
+    const s = SERVICOS.find((x) => x.nome === a.servico);
+    return s ? s.duracao : INTERVALO_MIN;
+  }
+
+  // dois intervalos [inicio, fim) se sobrepõem?
+  function sobrepoe(inicioA, fimA, inicioB, fimB) {
+    return inicioA < fimB && inicioB < fimA;
+  }
+
+  // horários em que cabe um serviço de `duracao` minutos com esse barbeiro nesse dia
+  function horariosLivres(barbeiroId, dataISO, duracao) {
     const ocupados = getAppointments()
       .filter((a) => a.barbeiroId === barbeiroId && a.data === dataISO)
-      .map((a) => a.horario);
-    return gradeDeHorarios().filter((h) => !ocupados.includes(h));
+      .map((a) => {
+        const ini = paraMinutos(a.horario);
+        return { ini, fim: ini + duracaoDoAgendamento(a) };
+      });
+
+    const fimExpediente = HORARIO_FIM * 60;
+    const agora = new Date();
+    const ehHoje = dataISO === paraISO(agora);
+    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+
+    return gradeDeHorarios().filter((h) => {
+      const ini = paraMinutos(h);
+      const fim = ini + duracao;
+      if (fim > fimExpediente) return false;            // não termina depois de fechar
+      if (ehHoje && ini <= minutosAgora) return false;  // não oferece horário que já passou
+      return !ocupados.some((o) => sobrepoe(ini, fim, o.ini, o.fim));
+    });
   }
 
   function proximosDiasUteis(qtd) {
@@ -423,8 +457,13 @@
     return dias;
   }
 
+  // AAAA-MM-DD no fuso local (toISOString usa UTC e, no Brasil,
+  // depois das 21h devolvia o dia seguinte)
   function paraISO(date) {
-    return date.toISOString().split("T")[0];
+    const a = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${a}-${m}-${d}`;
   }
 
   function renderizarPassoDias() {
@@ -433,7 +472,7 @@
 
     dias.forEach((date) => {
       const iso = paraISO(date);
-      const livres = horariosLivres(estado.barbeiro.id, iso);
+      const livres = horariosLivres(estado.barbeiro.id, iso, estado.servico.duracao);
       const li = document.createElement("li");
       const btn = document.createElement("button");
       btn.type = "button";
@@ -458,7 +497,7 @@
     msgAgendamento.textContent = "";
     wizardHorarios.innerHTML = "";
 
-    const livres = horariosLivres(estado.barbeiro.id, estado.data);
+    const livres = horariosLivres(estado.barbeiro.id, estado.data, estado.servico.duracao);
     livres.forEach((h) => {
       const li = document.createElement("li");
       const btn = document.createElement("button");
@@ -475,11 +514,16 @@
     });
   }
 
+  function horaFim(hhmm, duracao) {
+    const t = paraMinutos(hhmm) + duracao;
+    return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+  }
+
   function mostrarResumo() {
     const [ano, mes, dia] = estado.data.split("-");
     wizardResumo.innerHTML = `
       <strong>${estado.servico.nome}</strong> com <strong>${estado.barbeiro.nome}</strong><br>
-      ${dia}/${mes}/${ano} às <strong>${estado.horario}</strong> · R$ ${estado.servico.preco}`;
+      ${dia}/${mes}/${ano} das <strong>${estado.horario}</strong> às ${horaFim(estado.horario, estado.servico.duracao)} · R$ ${estado.servico.preco}`;
     wizardResumo.classList.add("is-visivel");
   }
 
@@ -493,9 +537,8 @@
     }
 
     const agendamentos = getAppointments();
-    const conflito = agendamentos.some(
-      (a) => a.barbeiroId === estado.barbeiro.id && a.data === estado.data && a.horario === estado.horario
-    );
+    const livresAgora = horariosLivres(estado.barbeiro.id, estado.data, estado.servico.duracao);
+    const conflito = !livresAgora.includes(estado.horario);
     if (conflito) {
       mostrarMsg(msgAgendamento, "Esse horário acabou de ser reservado. Escolha outro.", true);
       renderizarPassoHorarios();
@@ -507,6 +550,7 @@
       clienteEmail: user.email,
       clienteNome: user.nome,
       servico: estado.servico.nome,
+      duracao: estado.servico.duracao,
       barbeiroId: estado.barbeiro.id,
       barbeiroNome: estado.barbeiro.nome,
       data: estado.data,
