@@ -84,10 +84,18 @@
     { pergunta: "Quais as formas de pagamento?", resposta: "Dinheiro, PIX e cartão de débito/crédito." },
   ];
 
-  // dias da semana em que a barbearia funciona (0 = domingo ... 6 = sábado)
-  const DIAS_FUNCIONAMENTO = [2, 3, 4, 5, 6]; // terça a sábado
-  const HORARIO_INICIO = 9;   // 09:00
-  const HORARIO_FIM = 19;     // 19:00
+  // expediente por dia da semana (0 = domingo ... 6 = sábado).
+  // cada dia tem uma lista de turnos [início, fim]; dia sem turnos = fechado.
+  // a pausa do almoço é o espaço entre os turnos.
+  const EXPEDIENTE = {
+    0: [],                                         // domingo: fechado
+    1: [["13:30", "20:00"]],                       // segunda: só à tarde
+    2: [["09:00", "12:00"], ["13:30", "20:00"]],   // terça
+    3: [["09:00", "12:00"], ["13:30", "20:00"]],   // quarta
+    4: [["09:00", "12:00"], ["13:30", "20:00"]],   // quinta
+    5: [["09:00", "12:00"], ["13:30", "20:00"]],   // sexta
+    6: [["09:00", "12:00"], ["13:30", "16:00"]],   // sábado
+  };
   const INTERVALO_MIN = 30;   // grade de horários de 30 em 30 min
   const DIAS_PARA_MOSTRAR = 7; // quantos dias futuros oferecer no passo 3
 
@@ -392,15 +400,23 @@
     });
   }
 
-  // gera a grade fixa de horários do dia (independente de ocupação)
-  function gradeDeHorarios() {
-    const horarios = [];
-    for (let h = HORARIO_INICIO; h < HORARIO_FIM; h++) {
-      for (let m = 0; m < 60; m += INTERVALO_MIN) {
-        horarios.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-      }
-    }
-    return horarios;
+  // 570 -> "09:30"
+  function paraHHMM(minutos) {
+    return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
+  }
+
+  // "2026-09-29" -> dia da semana (0..6), sem passar por UTC
+  function diaDaSemana(dataISO) {
+    const [a, m, d] = dataISO.split("-").map(Number);
+    return new Date(a, m - 1, d).getDay();
+  }
+
+  // turnos do dia em minutos: [{ ini: 540, fim: 720 }, ...]
+  function turnosDoDia(dataISO) {
+    return (EXPEDIENTE[diaDaSemana(dataISO)] || []).map(([ini, fim]) => ({
+      ini: paraMinutos(ini),
+      fim: paraMinutos(fim),
+    }));
   }
 
   // "09:30" -> 570 (minutos desde meia-noite)
@@ -430,18 +446,22 @@
         return { ini, fim: ini + duracaoDoAgendamento(a) };
       });
 
-    const fimExpediente = HORARIO_FIM * 60;
     const agora = new Date();
     const ehHoje = dataISO === paraISO(agora);
     const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
 
-    return gradeDeHorarios().filter((h) => {
-      const ini = paraMinutos(h);
-      const fim = ini + duracao;
-      if (fim > fimExpediente) return false;            // não termina depois de fechar
-      if (ehHoje && ini <= minutosAgora) return false;  // não oferece horário que já passou
-      return !ocupados.some((o) => sobrepoe(ini, fim, o.ini, o.fim));
+    const livres = [];
+    // percorre cada turno em passos de INTERVALO_MIN; o serviço precisa
+    // começar e terminar dentro do mesmo turno (não atravessa o almoço)
+    turnosDoDia(dataISO).forEach((turno) => {
+      for (let ini = turno.ini; ini + duracao <= turno.fim; ini += INTERVALO_MIN) {
+        const fim = ini + duracao;
+        if (ehHoje && ini <= minutosAgora) continue;                 // já passou
+        if (ocupados.some((o) => sobrepoe(ini, fim, o.ini, o.fim))) continue;
+        livres.push(paraHHMM(ini));
+      }
     });
+    return livres;
   }
 
   function proximosDiasUteis(qtd) {
@@ -449,7 +469,7 @@
     const cursor = new Date();
     cursor.setHours(0, 0, 0, 0);
     while (dias.length < qtd) {
-      if (DIAS_FUNCIONAMENTO.includes(cursor.getDay())) {
+      if (EXPEDIENTE[cursor.getDay()].length > 0) {
         dias.push(new Date(cursor));
       }
       cursor.setDate(cursor.getDate() + 1);
@@ -515,8 +535,7 @@
   }
 
   function horaFim(hhmm, duracao) {
-    const t = paraMinutos(hhmm) + duracao;
-    return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+    return paraHHMM(paraMinutos(hhmm) + duracao);
   }
 
   function mostrarResumo() {
