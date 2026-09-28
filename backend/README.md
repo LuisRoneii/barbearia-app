@@ -30,6 +30,7 @@ Todas as rotas usam o `slug` da barbearia: `zt-barber`.
 | GET | `/api/saude` | API no ar e conectada ao banco |
 | GET | `/api/zt-barber/servicos` | serviços ativos com duração e preço |
 | GET | `/api/zt-barber/barbeiros` | barbeiros ativos |
+| GET | `/api/zt-barber/dias?barbeiro_id=1&servico_id=1&quantidade=14` | próximos dias: aberto, lotado, fechado ou bloqueado (feriado) |
 | GET | `/api/zt-barber/horarios?barbeiro_id=1&servico_id=1&data=2026-09-29` | horários livres do dia |
 | POST | `/api/zt-barber/agendamentos` | cria um agendamento |
 
