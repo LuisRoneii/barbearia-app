@@ -10,7 +10,7 @@ Arquivos:
 - `database/schema.sql` — cria as tabelas
 - `database/seed.sql` — dados iniciais da ZT Barber (barbeiros, serviços, expediente, feriados)
 
-Itens marcados com ⚠️ dependem de confirmação do cliente.
+Regras de negócio confirmadas com o cliente em 28/09/2026.
 
 ---
 
@@ -119,7 +119,7 @@ O cliente do sistema. Todas as outras tabelas pertencem a uma barbearia.
 | slug | varchar(100) unique | `zt-barber`, para URL caso o sistema atenda várias barbearias |
 | telefone, endereco | varchar | |
 | fuso_horario | varchar(50) | `America/Sao_Paulo`; usado nos relatórios por mês |
-| antecedencia_cancelamento_horas | int | ⚠️ cliente disse "3 a 5h"; começamos com 3 |
+| antecedencia_cancelamento_horas | int | cliente pode cancelar até 3 horas antes |
 
 ### `barbeiros`
 | Campo | Tipo | Observação |
@@ -145,8 +145,9 @@ Não existe preço por barbeiro: os dois cobram o mesmo. O desconto "de amigo"
 é aplicado no próprio agendamento (`preco_cobrado`).
 
 ### `clientes`
-Quem agenda pelo site. A identificação é pelo **WhatsApp**; e-mail e senha são
-opcionais.
+Quem agenda pelo site. **Não há conta com senha**: o cliente agenda só com nome
+e WhatsApp, e é identificado pelo telefone. E-mail e senha ficam opcionais para
+uso futuro.
 
 | Campo | Tipo | Observação |
 |---|---|---|
@@ -155,7 +156,7 @@ opcionais.
 | nome | varchar | |
 | telefone | varchar | único por barbearia |
 | email | varchar, nulo | único por barbearia quando preenchido |
-| senha_hash | varchar, nulo | ⚠️ só se decidirem que o cliente precisa de conta |
+| senha_hash | varchar, nulo | não usado na versão 1 |
 
 ### `contas_admin`
 Quem entra no painel. É separado de `clientes` porque tem outra permissão.
@@ -198,8 +199,9 @@ Folga, férias, feriado ou compromisso.
 | inicio, fim | timestamptz | |
 | motivo | varchar | |
 
-O `seed.sql` já cadastra os feriados nacionais até janeiro de 2027.
-⚠️ Faltam os feriados municipais de Rio Negro.
+A barbearia fecha em **todos** os feriados. O `seed.sql` cadastra os nacionais
+e o municipal de Rio Negro (6 de agosto) até o fim de 2027. A lista precisa ser
+atualizada uma vez por ano.
 
 ### `agendamentos`
 | Campo | Tipo | Observação |
@@ -293,7 +295,7 @@ psql -U postgres -d zt_barber -f database/seed.sql
 
 | Tabela | Quando |
 |---|---|
-| `planos`, `assinaturas` | planos mensais (R$110 e R$160), versão 2 |
+| `planos`, `assinaturas` | planos mensais, versão 2: R$110 = 4 cortes + sobrancelha de brinde; R$160 = 4 cortes + 4 barbas. Não usados acumulam, com limite de 4 |
 | `mensagens_whatsapp` | log de confirmações/lembretes enviados, para não mandar em duplicidade |
 | `avaliacoes` | depoimentos reais no site |
 
