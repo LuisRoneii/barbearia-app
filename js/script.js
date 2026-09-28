@@ -1,150 +1,156 @@
 /* ==========================================================================
    ZT BARBER — script.js
-   Cadastro, login e agendamento (por profissional) rodando 100% no
-   navegador via localStorage.
-   ⚠️ Simulação para portfólio/demo: os dados ficam só neste navegador.
-   Para produção real, troque as funções db*() por chamadas a um backend
-   de verdade (Node/Express, Firebase, etc) e mova BARBEIROS/SERVICOS
-   pra vir de uma API.
+   Conteúdo do site + agendamento conectado à API (pasta backend/).
+   Serviços, barbeiros, dias e horários vêm do banco de dados.
+   O cliente agenda só com nome e WhatsApp (sem conta e sem senha).
    ========================================================================== */
 
 (() => {
   "use strict";
 
   /* ---------------------------------------------------------------------
-     "Banco de dados" local
+     Endereço da API
+     Rodando no seu PC (Live Server / abrindo o index.html): usa a API local.
+     Quando o site for publicado, troque API_PRODUCAO pelo endereço real.
   --------------------------------------------------------------------- */
-  const DB_USERS = "tb_users";
-  const DB_APPOINTMENTS = "tb_appointments";
-  const DB_SESSION = "tb_session";
+  const SLUG = "zt-barber";
+  const API_LOCAL = `http://localhost:3000/api/${SLUG}`;
+  const API_PRODUCAO = `/api/${SLUG}`; // ajustar no deploy (#8, #9)
 
-  function dbGet(key, fallback) {
+  const ehLocal = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+  const API_URL = ehLocal ? API_LOCAL : API_PRODUCAO;
+
+  const DIAS_PARA_MOSTRAR = 14; // dias consultados no passo 3
+  const NOME_DIA_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+  const MSG_API_FORA =
+    "Não foi possível carregar a agenda agora. Tente de novo em instantes ou chame a gente no WhatsApp.";
+
+  /* ---------------------------------------------------------------------
+     Guardado neste aparelho (só conveniência, não é o banco)
+     - dados do cliente, para não digitar de novo
+     - agendamentos feitos daqui, para mostrar em "Seus próximos horários"
+  --------------------------------------------------------------------- */
+  const LS_CLIENTE = "zt_cliente";
+  const LS_AGENDAMENTOS = "zt_meus_agendamentos";
+
+  function lerLocal(chave, padrao) {
     try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
+      const bruto = localStorage.getItem(chave);
+      return bruto ? JSON.parse(bruto) : padrao;
     } catch (e) {
-      return fallback;
+      return padrao;
     }
   }
-  function dbSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
-
-  function getUsers() { return dbGet(DB_USERS, []); }
-  function saveUsers(users) { dbSet(DB_USERS, users); }
-  function getAppointments() { return dbGet(DB_APPOINTMENTS, []); }
-  function saveAppointments(list) { dbSet(DB_APPOINTMENTS, list); }
-  function getSession() { return dbGet(DB_SESSION, null); }
-  function setSession(email) { dbSet(DB_SESSION, email); }
-  function clearSession() { localStorage.removeItem(DB_SESSION); }
-
-  // hash simples só pra não guardar a senha em texto puro no localStorage.
-  // NÃO é criptografia segura — trocar por hash real (bcrypt etc) no backend.
-  function hashSenha(senha) {
-    let hash = 0;
-    for (let i = 0; i < senha.length; i++) {
-      hash = (hash << 5) - hash + senha.charCodeAt(i);
-      hash |= 0;
-    }
-    return String(hash);
+  function gravarLocal(chave, valor) {
+    try { localStorage.setItem(chave, JSON.stringify(valor)); } catch (e) { /* modo privado */ }
   }
 
   /* ---------------------------------------------------------------------
-     Dados: serviços, barbeiros, portfólio, depoimentos, FAQ
+     Conversa com a API
   --------------------------------------------------------------------- */
-  const SERVICOS = [
-    { id: "corte", nome: "Corte Masculino", duracao: 30, preco: 45 },
-    { id: "barba", nome: "Barba", duracao: 25, preco: 35 },
-    { id: "combo", nome: "Combo Corte + Barba", duracao: 55, preco: 70 },
-    { id: "sobrancelha", nome: "Sobrancelha", duracao: 15, preco: 20 },
-    { id: "pigmentacao", nome: "Pigmentação", duracao: 40, preco: 50 },
-    { id: "infantil", nome: "Corte Infantil", duracao: 25, preco: 30 },
-  ];
+  class ErroApi extends Error {
+    constructor(mensagem, status) {
+      super(mensagem);
+      this.status = status;
+    }
+  }
 
-  // troque nomes/especialidades/iniciais pelos barbeiros reais
-  const BARBEIROS = [
-    { id: "train", nome: "Train", especialidade: "Cortes e barba" },
-    { id: "zefe", nome: "Zefe", especialidade: "Cortes e barba" },
-  ];
+  async function api(caminho, opcoes = {}) {
+    let resposta;
+    try {
+      resposta = await fetch(API_URL + caminho, {
+        headers: { "Content-Type": "application/json" },
+        ...opcoes,
+      });
+    } catch (e) {
+      throw new ErroApi(MSG_API_FORA, 0); // API desligada ou sem internet
+    }
+    const corpo = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) {
+      throw new ErroApi(corpo.erro || MSG_API_FORA, resposta.status);
+    }
+    return corpo;
+  }
 
+  /* ---------------------------------------------------------------------
+     Conteúdo fixo: portfólio, depoimentos, FAQ
+  --------------------------------------------------------------------- */
   const PORTFOLIO_PLACEHOLDERS = [
-    "Degradê navalhado", "Barba desenhada", "Corte social", "Platinado",
-    "Combo completo", "Pompadour", "Risco lateral", "Infantil",
+    "Degradê navalhado", "Barba desenhada", "Corte social", "Risco lateral",
+    "Combo completo", "Pompadour", "Barba alinhada", "Degradê baixo",
   ];
 
   const DEPOIMENTOS = [
     { texto: "Marquei pelo site, cheguei e já fui atendido no horário certo. Corte impecável.", autor: "Gabriel M." },
-    { texto: "O Lucas entende exatamente o que eu peço. Não troco de barbeiro há 2 anos.", autor: "Diego A." },
+    { texto: "Entendem exatamente o que eu peço. Não troco de barbearia há 2 anos.", autor: "Diego A." },
     { texto: "Ambiente simples, sem enrolação, e o resultado sempre vem melhor do que eu esperava.", autor: "Rafael S." },
   ];
 
   const FAQ = [
-    { pergunta: "Preciso criar conta pra agendar?", resposta: "Sim. É rápido: nome, e-mail, telefone e senha. Assim você acompanha seus horários marcados." },
-    { pergunta: "Posso escolher o barbeiro?", resposta: "Sim, o agendamento é feito escolhendo o profissional e depois vendo só os horários livres na agenda dele." },
-    { pergunta: "Como cancelo ou remarco um horário?", resposta: "Chame no WhatsApp com o máximo de antecedência possível — o link está na seção de contato." },
-    { pergunta: "Quais as formas de pagamento?", resposta: "Dinheiro, PIX e cartão de débito/crédito." },
+    { pergunta: "Preciso criar conta pra agendar?", resposta: "Não. Você escolhe o serviço, o barbeiro e o horário e informa só seu nome e WhatsApp." },
+    { pergunta: "Posso escolher o barbeiro?", resposta: "Sim. Você vê só os horários livres na agenda do barbeiro que escolher." },
+    { pergunta: "Como cancelo ou remarco um horário?", resposta: "Chame no WhatsApp do seu barbeiro até 3 horas antes do horário marcado. Os links estão na seção de contato." },
+    { pergunta: "Abrem em feriados?", resposta: "Não. Nos feriados a barbearia fica fechada, e esses dias aparecem como \"Feriado\" na hora de agendar." },
+    { pergunta: "Quais as formas de pagamento?", resposta: "Dinheiro, PIX e cartão de débito ou crédito." },
   ];
 
-  // dias da semana em que a barbearia funciona (0 = domingo ... 6 = sábado)
-  // expediente por dia da semana (0 = domingo ... 6 = sábado): lista de [abre, fecha]
-  const EXPEDIENTE = {
-    1: [["13:30", "20:00"]],
-    2: [["09:00", "12:00"], ["13:30", "20:00"]],
-    3: [["09:00", "12:00"], ["13:30", "20:00"]],
-    4: [["09:00", "12:00"], ["13:30", "20:00"]],
-    5: [["09:00", "12:00"], ["13:30", "20:00"]],
-    6: [["09:00", "12:00"], ["13:30", "16:00"]],
-  };
-  const DIAS_FUNCIONAMENTO = Object.keys(EXPEDIENTE).map(Number);
-
-  // feriados (AAAA-MM-DD) em que a barbearia não abre. Atualizar todo ano
-  // e incluir feriados municipais de Rio Negro, se houver.
-  const FERIADOS = new Set([
-    "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25",
-    "2027-01-01", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27",
-    "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25",
-  ]);
-  const INTERVALO_MIN = 30;   // grade de horários de 30 em 30 min
-  const DIAS_PARA_MOSTRAR = 7; // quantos dias futuros oferecer no passo 3
-
-  const NOME_DIA_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-
   /* ---------------------------------------------------------------------
-     Elementos
+     Utilitários
   --------------------------------------------------------------------- */
-  const header = document.getElementById("header");
-  const hamburger = document.getElementById("hamburger");
-  const mobileNav = document.getElementById("mobile-nav");
+  const $ = (id) => document.getElementById(id);
 
-  const modalOverlay = document.getElementById("modal-overlay");
-  const modalFechar = document.getElementById("modal-fechar");
-  const tabLogin = document.getElementById("tab-login");
-  const tabCadastro = document.getElementById("tab-cadastro");
-  const formLogin = document.getElementById("form-login");
-  const formCadastro = document.getElementById("form-cadastro");
-  const msgLogin = document.getElementById("msg-login");
-  const msgCadastro = document.getElementById("msg-cadastro");
+  // texto vindo da API vai sempre por textContent/escape, nunca direto no HTML
+  function esc(texto) {
+    return String(texto ?? "").replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
 
-  const btnConta = document.getElementById("btn-conta");
-  const btnAbrirCadastro = document.getElementById("btn-abrir-cadastro");
-  const btnAbrirLogin = document.getElementById("btn-abrir-login");
-  const btnSair = document.getElementById("btn-sair");
+  function formatarPreco(valor) {
+    return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
 
-  const boxLogadoFora = document.getElementById("box-logado-fora");
-  const boxLogadoDentro = document.getElementById("box-logado-dentro");
-  const nomeUsuarioLogado = document.getElementById("nome-usuario-logado");
+  function formatarData(dataISO) {
+    const [a, m, d] = dataISO.split("-");
+    return `${d}/${m}/${a}`;
+  }
 
-  const wizardSteps = document.getElementById("wizard-steps");
-  const wizardServicos = document.getElementById("wizard-servicos");
-  const wizardBarbeiros = document.getElementById("wizard-barbeiros");
-  const wizardDias = document.getElementById("wizard-dias");
-  const wizardHorarios = document.getElementById("wizard-horarios");
-  const wizardResumo = document.getElementById("wizard-resumo");
-  const btnConfirmarAgendamento = document.getElementById("btn-confirmar-agendamento");
-  const msgAgendamento = document.getElementById("msg-agendamento");
-  const listaAgendamentos = document.getElementById("lista-agendamentos");
+  function horaFim(hhmm, duracao) {
+    const [h, m] = hhmm.split(":").map(Number);
+    const t = h * 60 + m + duracao;
+    return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+  }
+
+  function hojeISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function iniciais(nome) {
+    return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  }
+
+  function mostrarMsg(el, texto, erro) {
+    el.textContent = texto;
+    el.classList.toggle("is-error", !!erro);
+    el.classList.toggle("is-ok", !erro);
+  }
+
+  function itemInformativo(ul, texto, classe = "lista__aviso") {
+    ul.innerHTML = "";
+    const li = document.createElement("li");
+    li.className = classe;
+    li.textContent = texto;
+    ul.appendChild(li);
+  }
 
   /* ---------------------------------------------------------------------
      Menu mobile
   --------------------------------------------------------------------- */
+  const hamburger = $("hamburger");
+  const mobileNav = $("mobile-nav");
+
   hamburger.addEventListener("click", () => {
     const aberto = mobileNav.classList.toggle("is-open");
     hamburger.setAttribute("aria-expanded", String(aberto));
@@ -157,149 +163,41 @@
   });
 
   /* ---------------------------------------------------------------------
-     Modal login / cadastro
+     Seções: equipe e serviços (da API) / portfólio / depoimentos / FAQ
   --------------------------------------------------------------------- */
-  function abrirModal(aba) {
-    modalOverlay.classList.add("is-open");
-    trocarAba(aba || "login");
-  }
-  function fecharModal() {
-    modalOverlay.classList.remove("is-open");
-    msgLogin.textContent = "";
-    msgCadastro.textContent = "";
-  }
-  function trocarAba(aba) {
-    const isLogin = aba === "login";
-    tabLogin.classList.toggle("is-active", isLogin);
-    tabCadastro.classList.toggle("is-active", !isLogin);
-    formLogin.classList.toggle("hidden", !isLogin);
-    formCadastro.classList.toggle("hidden", isLogin);
-  }
+  let SERVICOS = [];
+  let BARBEIROS = [];
 
-  tabLogin.addEventListener("click", () => trocarAba("login"));
-  tabCadastro.addEventListener("click", () => trocarAba("cadastro"));
-  modalFechar.addEventListener("click", fecharModal);
-  modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) fecharModal(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharModal(); });
-
-  btnAbrirCadastro.addEventListener("click", () => abrirModal("cadastro"));
-  btnAbrirLogin.addEventListener("click", () => abrirModal("login"));
-
-  btnConta.addEventListener("click", () => {
-    if (getSession()) {
-      document.getElementById("agendar").scrollIntoView({ behavior: "smooth" });
-    } else {
-      abrirModal("login");
-    }
-  });
-
-  /* ---------------------------------------------------------------------
-     Cadastro / login
-  --------------------------------------------------------------------- */
-  formCadastro.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const nome = document.getElementById("cad-nome").value.trim();
-    const email = document.getElementById("cad-email").value.trim().toLowerCase();
-    const telefone = document.getElementById("cad-telefone").value.trim();
-    const senha = document.getElementById("cad-senha").value;
-
-    if (!nome || !email || !telefone || senha.length < 4) {
-      mostrarMsg(msgCadastro, "Preencha todos os campos (senha com 4+ caracteres).", true);
-      return;
-    }
-    const users = getUsers();
-    if (users.some((u) => u.email === email)) {
-      mostrarMsg(msgCadastro, "Já existe uma conta com esse e-mail.", true);
-      return;
-    }
-    users.push({ nome, email, telefone, senhaHash: hashSenha(senha) });
-    saveUsers(users);
-    setSession(email);
-    mostrarMsg(msgCadastro, "Conta criada com sucesso!", false);
-    setTimeout(() => { fecharModal(); atualizarEstadoConta(); }, 500);
-  });
-
-  formLogin.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const email = document.getElementById("login-email").value.trim().toLowerCase();
-    const senha = document.getElementById("login-senha").value;
-    const user = getUsers().find((u) => u.email === email);
-    if (!user || user.senhaHash !== hashSenha(senha)) {
-      mostrarMsg(msgLogin, "E-mail ou senha incorretos.", true);
-      return;
-    }
-    setSession(email);
-    mostrarMsg(msgLogin, "Login realizado!", false);
-    setTimeout(() => { fecharModal(); atualizarEstadoConta(); }, 400);
-  });
-
-  btnSair.addEventListener("click", () => { clearSession(); atualizarEstadoConta(); });
-
-  function mostrarMsg(el, texto, erro) {
-    el.textContent = texto;
-    el.classList.toggle("is-error", !!erro);
-    el.classList.toggle("is-ok", !erro);
-  }
-
-  function usuarioAtual() {
-    const email = getSession();
-    if (!email) return null;
-    return getUsers().find((u) => u.email === email) || null;
-  }
-
-  function atualizarEstadoConta() {
-    const user = usuarioAtual();
-    if (user) {
-      boxLogadoFora.classList.add("hidden");
-      boxLogadoDentro.classList.remove("hidden");
-      nomeUsuarioLogado.textContent = user.nome.split(" ")[0];
-      btnConta.textContent = "Minha agenda";
-      resetarWizard();
-      renderizarMeusAgendamentos();
-    } else {
-      boxLogadoFora.classList.remove("hidden");
-      boxLogadoDentro.classList.add("hidden");
-      btnConta.textContent = "Minha conta";
-    }
-  }
-
-  /* ---------------------------------------------------------------------
-     Render: equipe (seção estática) / serviços / portfólio / depoimentos / faq
-  --------------------------------------------------------------------- */
-  function renderizarEquipeEstatica() {
-    const ul = document.getElementById("lista-equipe");
+  function renderizarEquipe() {
+    const ul = $("lista-equipe");
     ul.innerHTML = "";
     BARBEIROS.forEach((b) => {
       const li = document.createElement("li");
       li.className = "barbeiro-card";
       li.innerHTML = `
-        <div class="barbeiro-card__foto">${iniciais(b.nome)}</div>
-        <p class="barbeiro-card__nome">${b.nome}</p>
-        <p class="barbeiro-card__especialidade">${b.especialidade}</p>`;
+        <div class="barbeiro-card__foto">${esc(iniciais(b.nome))}</div>
+        <p class="barbeiro-card__nome">${esc(b.nome)}</p>
+        <p class="barbeiro-card__especialidade">${esc(b.especialidade || "")}</p>`;
       ul.appendChild(li);
     });
   }
 
-  function iniciais(nome) {
-    return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-  }
-
-  function renderizarServicosEstatico() {
-    const ul = document.getElementById("lista-servicos");
+  function renderizarServicos() {
+    const ul = $("lista-servicos");
     ul.innerHTML = "";
     SERVICOS.forEach((s) => {
       const li = document.createElement("li");
       li.className = "servico";
       li.innerHTML = `
-        <div class="servico__nome">${s.nome}</div>
-        <div class="servico__desc">${s.duracao} minutos de atendimento dedicado.</div>
-        <div class="servico__meta"><span>${s.duracao} min</span><span class="servico__preco">R$ ${s.preco}</span></div>`;
+        <div class="servico__nome">${esc(s.nome)}</div>
+        <div class="servico__desc">${s.duracao_min} minutos de atendimento dedicado.</div>
+        <div class="servico__meta"><span>${s.duracao_min} min</span><span class="servico__preco">${formatarPreco(s.preco)}</span></div>`;
       ul.appendChild(li);
     });
   }
 
   function renderizarPortfolio() {
-    const ul = document.getElementById("lista-portfolio");
+    const ul = $("lista-portfolio");
     ul.innerHTML = "";
     PORTFOLIO_PLACEHOLDERS.forEach((legenda) => {
       const li = document.createElement("li");
@@ -309,31 +207,31 @@
   }
 
   function renderizarDepoimentos() {
-    const ul = document.getElementById("lista-depoimentos");
+    const ul = $("lista-depoimentos");
     ul.innerHTML = "";
     DEPOIMENTOS.forEach((d) => {
       const li = document.createElement("li");
       li.className = "depoimento";
       li.innerHTML = `
         <div class="depoimento__estrelas">★★★★★</div>
-        <p class="depoimento__texto">"${d.texto}"</p>
-        <p class="depoimento__autor">${d.autor}</p>`;
+        <p class="depoimento__texto">"${esc(d.texto)}"</p>
+        <p class="depoimento__autor">${esc(d.autor)}</p>`;
       ul.appendChild(li);
     });
   }
 
   function renderizarFaq() {
-    const ul = document.getElementById("lista-faq");
+    const ul = $("lista-faq");
     ul.innerHTML = "";
     FAQ.forEach((item) => {
       const li = document.createElement("li");
       li.className = "faq-item";
       li.innerHTML = `
         <button class="faq-item__pergunta" type="button">
-          <span>${item.pergunta}</span>
+          <span>${esc(item.pergunta)}</span>
           <span class="faq-item__icone">+</span>
         </button>
-        <div class="faq-item__resposta"><p>${item.resposta}</p></div>`;
+        <div class="faq-item__resposta"><p>${esc(item.resposta)}</p></div>`;
       li.querySelector(".faq-item__pergunta").addEventListener("click", () => {
         li.classList.toggle("is-aberto");
       });
@@ -344,6 +242,20 @@
   /* ---------------------------------------------------------------------
      Wizard de agendamento
   --------------------------------------------------------------------- */
+  const wizardSteps = $("wizard-steps");
+  const wizardServicos = $("wizard-servicos");
+  const wizardBarbeiros = $("wizard-barbeiros");
+  const wizardDias = $("wizard-dias");
+  const wizardHorarios = $("wizard-horarios");
+  const wizardResumo = $("wizard-resumo");
+  const formDados = $("form-dados");
+  const inputNome = $("cliente-nome");
+  const inputTelefone = $("cliente-telefone");
+  const btnConfirmar = $("btn-confirmar-agendamento");
+  const msgAgendamento = $("msg-agendamento");
+  const msgWizard = $("msg-wizard");
+  const listaAgendamentos = $("lista-agendamentos");
+
   const estado = { servico: null, barbeiro: null, data: null, horario: null };
 
   function irParaPasso(n) {
@@ -367,162 +279,135 @@
     estado.data = null;
     estado.horario = null;
     msgAgendamento.textContent = "";
+    msgWizard.textContent = "";
     wizardResumo.classList.remove("is-visivel");
+    formDados.classList.add("hidden");
     renderizarPassoServicos();
     irParaPasso(1);
   }
 
+  function botaoOpcao(html, aoClicar) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.innerHTML = html;
+    btn.addEventListener("click", aoClicar);
+    li.appendChild(btn);
+    return li;
+  }
+
+  // Passo 1
   function renderizarPassoServicos() {
     wizardServicos.innerHTML = "";
     SERVICOS.forEach((s) => {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.innerHTML = `<span class="op__nome">${s.nome}</span><span class="op__meta">R$ ${s.preco} · ${s.duracao} min</span>`;
-      btn.addEventListener("click", () => {
-        estado.servico = s;
-        renderizarPassoBarbeiros();
-        irParaPasso(2);
-      });
-      li.appendChild(btn);
-      wizardServicos.appendChild(li);
+      wizardServicos.appendChild(botaoOpcao(
+        `<span class="op__nome">${esc(s.nome)}</span><span class="op__meta">${formatarPreco(s.preco)} · ${s.duracao_min} min</span>`,
+        () => {
+          estado.servico = s;
+          renderizarPassoBarbeiros();
+          irParaPasso(2);
+        }
+      ));
     });
   }
 
+  // Passo 2
   function renderizarPassoBarbeiros() {
     wizardBarbeiros.innerHTML = "";
     BARBEIROS.forEach((b) => {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.innerHTML = `<span class="op__nome">${b.nome}</span><span class="op__especialidade">${b.especialidade}</span>`;
-      btn.addEventListener("click", () => {
-        estado.barbeiro = b;
-        renderizarPassoDias();
-        irParaPasso(3);
-      });
-      li.appendChild(btn);
-      wizardBarbeiros.appendChild(li);
+      wizardBarbeiros.appendChild(botaoOpcao(
+        `<span class="op__nome">${esc(b.nome)}</span><span class="op__especialidade">${esc(b.especialidade || "")}</span>`,
+        () => {
+          estado.barbeiro = b;
+          renderizarPassoDias();
+          irParaPasso(3);
+        }
+      ));
     });
   }
 
-  // gera a grade fixa de horários do dia (independente de ocupação)
-  // períodos de atendimento de uma data (vazio em feriados e dias fechados)
-  function periodosDoDia(dataISO) {
-    if (FERIADOS.has(dataISO)) return [];
-    const [a, m, d] = dataISO.split("-").map(Number);
-    return EXPEDIENTE[new Date(a, m - 1, d).getDay()] || [];
-  }
+  // Passo 3: dias vêm da API, com feriados e dias lotados sinalizados
+  async function renderizarPassoDias() {
+    itemInformativo(wizardDias, "Carregando dias…");
+    msgWizard.textContent = "";
 
-  function gradeDeHorarios(dataISO) {
-    const horarios = [];
-    periodosDoDia(dataISO).forEach(([abre, fecha]) => {
-      for (let t = paraMinutos(abre); t < paraMinutos(fecha); t += INTERVALO_MIN) {
-        const hh = String(Math.floor(t / 60)).padStart(2, "0");
-        const mm = String(t % 60).padStart(2, "0");
-        horarios.push(`${hh}:${mm}`);
-      }
-    });
-    return horarios;
-  }
-
-  // "09:30" -> 570 (minutos desde meia-noite)
-  function paraMinutos(hhmm) {
-    const [h, m] = hhmm.split(":").map(Number);
-    return h * 60 + m;
-  }
-
-  // duração de um agendamento salvo (registros antigos não tinham o campo)
-  function duracaoDoAgendamento(a) {
-    if (a.duracao) return a.duracao;
-    const s = SERVICOS.find((x) => x.nome === a.servico);
-    return s ? s.duracao : INTERVALO_MIN;
-  }
-
-  // dois intervalos [inicio, fim) se sobrepõem?
-  function sobrepoe(inicioA, fimA, inicioB, fimB) {
-    return inicioA < fimB && inicioB < fimA;
-  }
-
-  // horários em que cabe um serviço de `duracao` minutos com esse barbeiro nesse dia
-  function horariosLivres(barbeiroId, dataISO, duracao) {
-    const ocupados = getAppointments()
-      .filter((a) => a.barbeiroId === barbeiroId && a.data === dataISO)
-      .map((a) => {
-        const ini = paraMinutos(a.horario);
-        return { ini, fim: ini + duracaoDoAgendamento(a) };
-      });
-
-    const periodos = periodosDoDia(dataISO).map(([a, f]) => [paraMinutos(a), paraMinutos(f)]);
-    const agora = new Date();
-    const ehHoje = dataISO === paraISO(agora);
-    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-
-    return gradeDeHorarios(dataISO).filter((h) => {
-      const ini = paraMinutos(h);
-      const fim = ini + duracao;
-      const periodo = periodos.find(([a, f]) => ini >= a && ini < f);
-      if (!periodo || fim > periodo[1]) return false;   // não passa do almoço nem do fechamento
-      if (ehHoje && ini <= minutosAgora) return false;  // não oferece horário que já passou
-      return !ocupados.some((o) => sobrepoe(ini, fim, o.ini, o.fim));
-    });
-  }
-
-  function proximosDiasUteis(qtd) {
-    const dias = [];
-    const cursor = new Date();
-    cursor.setHours(0, 0, 0, 0);
-    while (dias.length < qtd) {
-      if (DIAS_FUNCIONAMENTO.includes(cursor.getDay()) && !FERIADOS.has(paraISO(cursor))) {
-        dias.push(new Date(cursor));
-      }
-      cursor.setDate(cursor.getDate() + 1);
+    let dias;
+    try {
+      dias = await api(
+        `/dias?barbeiro_id=${estado.barbeiro.id}&servico_id=${estado.servico.id}&quantidade=${DIAS_PARA_MOSTRAR}`
+      );
+    } catch (e) {
+      wizardDias.innerHTML = "";
+      mostrarMsg(msgWizard, e.message, true);
+      return;
     }
-    return dias;
-  }
 
-  // AAAA-MM-DD no fuso local (toISOString usa UTC e, no Brasil,
-  // depois das 21h devolvia o dia seguinte)
-  function paraISO(date) {
-    const a = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${a}-${m}-${d}`;
-  }
-
-  function renderizarPassoDias() {
     wizardDias.innerHTML = "";
-    const dias = proximosDiasUteis(DIAS_PARA_MOSTRAR);
+    dias
+      .filter((d) => d.situacao !== "fechado") // domingo etc. nem aparecem
+      .forEach((d) => {
+        const disponivel = d.situacao === "aberto";
+        let rotulo = "";
+        if (d.situacao === "bloqueado") rotulo = /feriado/i.test(d.motivo || "") ? "Feriado" : "Fechado";
+        if (d.situacao === "lotado") rotulo = "Lotado";
 
-    dias.forEach((date) => {
-      const iso = paraISO(date);
-      const livres = horariosLivres(estado.barbeiro.id, iso, estado.servico.duracao);
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.disabled = livres.length === 0;
-      if (livres.length === 0) btn.style.opacity = "0.35";
-      btn.innerHTML = `
-        <span class="dia__semana">${NOME_DIA_SEMANA[date.getDay()]}</span>
-        <span class="dia__numero">${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}</span>`;
-      btn.addEventListener("click", () => {
-        estado.data = iso;
-        renderizarPassoHorarios();
-        irParaPasso(4);
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.disabled = !disponivel;
+        if (!disponivel) {
+          btn.classList.add("dia--indisponivel");
+          if (d.motivo) btn.title = d.motivo;
+        }
+        const [, mes, dia] = d.data.split("-");
+        btn.innerHTML = `
+          <span class="dia__semana">${NOME_DIA_SEMANA[d.dia_semana]}</span>
+          <span class="dia__numero">${dia}/${mes}</span>
+          ${rotulo ? `<span class="dia__rotulo">${rotulo}</span>` : ""}`;
+        btn.addEventListener("click", () => {
+          estado.data = d.data;
+          renderizarPassoHorarios();
+          irParaPasso(4);
+        });
+        li.appendChild(btn);
+        wizardDias.appendChild(li);
       });
-      li.appendChild(btn);
-      wizardDias.appendChild(li);
-    });
+
+    // avisa sobre feriados que aparecem na lista
+    const feriados = dias.filter((d) => d.situacao === "bloqueado" && /feriado/i.test(d.motivo || ""));
+    if (feriados.length) {
+      const lista = feriados
+        .map((d) => `${formatarData(d.data).slice(0, 5)} (${d.motivo.replace(/^Feriado:\s*/i, "")})`)
+        .join(", ");
+      mostrarMsg(msgWizard, `Fechado no feriado: ${lista}.`, false);
+    }
   }
 
-  function renderizarPassoHorarios() {
+  // Passo 4: horários do dia vêm da API
+  async function renderizarPassoHorarios() {
     estado.horario = null;
     wizardResumo.classList.remove("is-visivel");
+    formDados.classList.add("hidden");
     msgAgendamento.textContent = "";
-    wizardHorarios.innerHTML = "";
+    itemInformativo(wizardHorarios, "Carregando horários…");
 
-    const livres = horariosLivres(estado.barbeiro.id, estado.data, estado.servico.duracao);
-    livres.forEach((h) => {
+    let resposta;
+    try {
+      resposta = await api(
+        `/horarios?barbeiro_id=${estado.barbeiro.id}&servico_id=${estado.servico.id}&data=${estado.data}`
+      );
+    } catch (e) {
+      wizardHorarios.innerHTML = "";
+      mostrarMsg(msgAgendamento, e.message, true);
+      return;
+    }
+
+    wizardHorarios.innerHTML = "";
+    if (resposta.horarios.length === 0) {
+      itemInformativo(wizardHorarios, "Não há mais horários livres neste dia. Volte e escolha outro.");
+      return;
+    }
+    resposta.horarios.forEach((h) => {
       const li = document.createElement("li");
       const btn = document.createElement("button");
       btn.type = "button";
@@ -538,78 +423,92 @@
     });
   }
 
-  function horaFim(hhmm, duracao) {
-    const t = paraMinutos(hhmm) + duracao;
-    return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-  }
-
   function mostrarResumo() {
-    const [ano, mes, dia] = estado.data.split("-");
     wizardResumo.innerHTML = `
-      <strong>${estado.servico.nome}</strong> com <strong>${estado.barbeiro.nome}</strong><br>
-      ${dia}/${mes}/${ano} das <strong>${estado.horario}</strong> às ${horaFim(estado.horario, estado.servico.duracao)} · R$ ${estado.servico.preco}`;
+      <strong>${esc(estado.servico.nome)}</strong> com <strong>${esc(estado.barbeiro.nome)}</strong><br>
+      ${formatarData(estado.data)} das <strong>${estado.horario}</strong> às ${horaFim(estado.horario, estado.servico.duracao_min)}
+      · ${formatarPreco(estado.servico.preco)}`;
     wizardResumo.classList.add("is-visivel");
+    formDados.classList.remove("hidden");
+    msgAgendamento.textContent = "";
+
+    const salvo = lerLocal(LS_CLIENTE, null);
+    if (salvo && !inputNome.value) inputNome.value = salvo.nome || "";
+    if (salvo && !inputTelefone.value) inputTelefone.value = salvo.telefone || "";
+    (inputNome.value ? inputTelefone : inputNome).focus();
   }
 
-  btnConfirmarAgendamento.addEventListener("click", () => {
-    const user = usuarioAtual();
-    if (!user) { abrirModal("login"); return; }
-
-    if (!estado.servico || !estado.barbeiro || !estado.data || !estado.horario) {
+  formDados.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!estado.horario) {
       mostrarMsg(msgAgendamento, "Escolha um horário antes de confirmar.", true);
       return;
     }
-
-    const agendamentos = getAppointments();
-    const livresAgora = horariosLivres(estado.barbeiro.id, estado.data, estado.servico.duracao);
-    const conflito = !livresAgora.includes(estado.horario);
-    if (conflito) {
-      mostrarMsg(msgAgendamento, "Esse horário acabou de ser reservado. Escolha outro.", true);
-      renderizarPassoHorarios();
+    const nome = inputNome.value.trim();
+    const telefone = inputTelefone.value.trim();
+    if (nome.length < 2) {
+      mostrarMsg(msgAgendamento, "Informe seu nome.", true);
+      inputNome.focus();
+      return;
+    }
+    if (telefone.replace(/\D/g, "").length < 10) {
+      mostrarMsg(msgAgendamento, "Informe seu WhatsApp com DDD.", true);
+      inputTelefone.focus();
       return;
     }
 
-    agendamentos.push({
-      id: Date.now().toString(36),
-      clienteEmail: user.email,
-      clienteNome: user.nome,
-      servico: estado.servico.nome,
-      duracao: estado.servico.duracao,
-      barbeiroId: estado.barbeiro.id,
-      barbeiroNome: estado.barbeiro.nome,
-      data: estado.data,
-      horario: estado.horario,
-    });
-    saveAppointments(agendamentos);
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = "Confirmando…";
+    try {
+      const criado = await api("/agendamentos", {
+        method: "POST",
+        body: JSON.stringify({
+          barbeiro_id: estado.barbeiro.id,
+          servico_id: estado.servico.id,
+          data: estado.data,
+          horario: estado.horario,
+          nome,
+          telefone,
+        }),
+      });
 
-    mostrarMsg(msgAgendamento, "Horário confirmado!", false);
-    renderizarMeusAgendamentos();
-    setTimeout(resetarWizard, 900);
+      gravarLocal(LS_CLIENTE, { nome, telefone });
+      const meus = lerLocal(LS_AGENDAMENTOS, []);
+      meus.push(criado);
+      gravarLocal(LS_AGENDAMENTOS, meus);
+
+      mostrarMsg(msgAgendamento, `Horário confirmado! Te esperamos dia ${formatarData(criado.data)} às ${criado.horario}.`, false);
+      renderizarMeusAgendamentos();
+      setTimeout(resetarWizard, 2500);
+    } catch (erro) {
+      // alguém pegou o horário: recarrega a lista primeiro (ela limpa a mensagem)
+      if (erro.status === 409) await renderizarPassoHorarios();
+      mostrarMsg(msgAgendamento, erro.message, true);
+    } finally {
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = "Confirmar agendamento";
+    }
   });
 
   /* ---------------------------------------------------------------------
-     Listar meus agendamentos
+     Seus próximos horários (agendados neste aparelho)
   --------------------------------------------------------------------- */
   function renderizarMeusAgendamentos() {
-    const user = usuarioAtual();
-    if (!user) return;
-
-    const meus = getAppointments()
-      .filter((a) => a.clienteEmail === user.email)
+    const hoje = hojeISO();
+    const proximos = lerLocal(LS_AGENDAMENTOS, [])
+      .filter((a) => a.data >= hoje)
       .sort((a, b) => (a.data + a.horario).localeCompare(b.data + b.horario));
 
+    gravarLocal(LS_AGENDAMENTOS, proximos); // limpa os que já passaram
+
     listaAgendamentos.innerHTML = "";
-    if (meus.length === 0) {
-      const li = document.createElement("li");
-      li.className = "vazio";
-      li.textContent = "Nenhum horário marcado ainda.";
-      listaAgendamentos.appendChild(li);
+    if (proximos.length === 0) {
+      itemInformativo(listaAgendamentos, "Nenhum horário marcado por este aparelho.", "vazio");
       return;
     }
-    meus.forEach((a) => {
+    proximos.forEach((a) => {
       const li = document.createElement("li");
-      const [ano, mes, dia] = a.data.split("-");
-      li.innerHTML = `<span>${a.servico} · ${a.barbeiroNome}</span><span>${dia}/${mes}/${ano} · ${a.horario}</span>`;
+      li.innerHTML = `<span>${esc(a.servico)} · ${esc(a.barbeiro)}</span><span>${formatarData(a.data)} · ${esc(a.horario)}</span>`;
       listaAgendamentos.appendChild(li);
     });
   }
@@ -617,14 +516,29 @@
   /* ---------------------------------------------------------------------
      Inicialização
   --------------------------------------------------------------------- */
+  async function carregarDadosDaApi() {
+    itemInformativo(wizardServicos, "Carregando serviços…");
+    try {
+      [SERVICOS, BARBEIROS] = await Promise.all([api("/servicos"), api("/barbeiros")]);
+    } catch (e) {
+      wizardServicos.innerHTML = "";
+      mostrarMsg(msgWizard, e.message, true);
+      itemInformativo($("lista-servicos"), "Não foi possível carregar os serviços agora.");
+      itemInformativo($("lista-equipe"), "Não foi possível carregar a equipe agora.");
+      return;
+    }
+    renderizarEquipe();
+    renderizarServicos();
+    resetarWizard();
+  }
+
   function init() {
-    document.getElementById("ano").textContent = new Date().getFullYear();
-    renderizarEquipeEstatica();
-    renderizarServicosEstatico();
+    $("ano").textContent = new Date().getFullYear();
     renderizarPortfolio();
     renderizarDepoimentos();
     renderizarFaq();
-    atualizarEstadoConta();
+    renderizarMeusAgendamentos();
+    carregarDadosDaApi();
   }
 
   init();

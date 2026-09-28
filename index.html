@@ -34,7 +34,7 @@
     </nav>
 
     <div class="header__actions">
-      <button class="btn btn--ghost" id="btn-conta">Minha conta</button>
+      <a href="#agendar" class="btn btn--ghost">Agendar</a>
       <button class="hamburger" id="hamburger" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -141,21 +141,9 @@
     <div class="container">
       <p class="section-label">Agendamento</p>
       <h2 class="agendar__title">Marque seu horário</h2>
-      <p class="agendar__sub">O agendamento é feito com sua conta ZT BARBER. Leva menos de um minuto.</p>
+      <p class="agendar__sub">Sem cadastro e sem senha: escolha o serviço, o barbeiro e o horário, e informe seu nome e WhatsApp. Leva menos de um minuto.</p>
 
-      <!-- Estado: deslogado -->
-      <div class="agendar__box" id="box-logado-fora">
-        <p>Você precisa entrar ou criar uma conta para agendar.</p>
-        <div class="agendar__box-actions">
-          <button class="btn btn--primary" id="btn-abrir-cadastro">Criar conta</button>
-          <button class="btn btn--outline" id="btn-abrir-login">Já tenho conta</button>
-        </div>
-      </div>
-
-      <!-- Estado: logado -->
-      <div class="agendar__box agendar__box--logado hidden" id="box-logado-dentro">
-        <p class="agendar__saudacao">Olá, <span id="nome-usuario-logado">—</span>. Vamos marcar seu horário.</p>
-
+      <div class="agendar__box">
         <!-- indicador de passos -->
         <ol class="wizard__steps" id="wizard-steps">
           <li data-step="1" class="is-active">Serviço</li>
@@ -163,6 +151,8 @@
           <li data-step="3">Dia</li>
           <li data-step="4">Horário</li>
         </ol>
+
+        <p class="form-msg wizard__msg" id="msg-wizard" role="status"></p>
 
         <!-- Passo 1: serviço -->
         <div class="wizard__step is-active" data-step-panel="1">
@@ -177,26 +167,33 @@
 
         <!-- Passo 3: dia -->
         <div class="wizard__step" data-step-panel="3">
-          <p class="wizard__aviso">Atendemos de segunda a sábado, com pausa para o almoço. Mostrando os próximos dias com vaga.</p>
+          <p class="wizard__aviso">Segunda à tarde e de terça a sábado, com pausa para o almoço. Fechado em feriados.</p>
           <ul class="wizard__dias" id="wizard-dias"></ul>
           <button class="link-voltar" data-voltar="2">&larr; Voltar</button>
         </div>
 
-        <!-- Passo 4: horário -->
+        <!-- Passo 4: horário + dados do cliente -->
         <div class="wizard__step" data-step-panel="4">
           <ul class="wizard__horarios" id="wizard-horarios"></ul>
-          <p class="form-msg" id="msg-agendamento" role="status"></p>
           <div class="wizard__resumo" id="wizard-resumo"></div>
-          <button class="btn btn--primary" id="btn-confirmar-agendamento">Confirmar agendamento</button>
+
+          <form class="wizard__dados hidden" id="form-dados" novalidate>
+            <label for="cliente-nome">Seu nome</label>
+            <input type="text" id="cliente-nome" autocomplete="name" maxlength="150" required>
+            <label for="cliente-telefone">WhatsApp (com DDD)</label>
+            <input type="tel" id="cliente-telefone" autocomplete="tel" placeholder="(47) 99999-9999" required>
+            <button type="submit" class="btn btn--primary" id="btn-confirmar-agendamento">Confirmar agendamento</button>
+          </form>
+
+          <p class="form-msg" id="msg-agendamento" role="status"></p>
           <button class="link-voltar" data-voltar="3">&larr; Voltar</button>
         </div>
 
         <div class="meus-agendamentos" id="meus-agendamentos">
           <h3>Seus próximos horários</h3>
           <ul id="lista-agendamentos"></ul>
+          <p class="meus-agendamentos__nota">Para cancelar ou remarcar, chame o seu barbeiro no WhatsApp até 3 horas antes.</p>
         </div>
-
-        <button class="link-sair" id="btn-sair">Sair da conta</button>
       </div>
     </div>
   </section>
@@ -241,42 +238,6 @@
     <p>&copy; <span id="ano"></span> ZT BARBER. Todos os direitos reservados.</p>
   </div>
 </footer>
-
-<!-- ===== MODAL LOGIN / CADASTRO ===== -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
-    <button class="modal__fechar" id="modal-fechar" aria-label="Fechar">&times;</button>
-
-    <div class="modal__tabs">
-      <button class="modal__tab is-active" data-tab="login" id="tab-login">Entrar</button>
-      <button class="modal__tab" data-tab="cadastro" id="tab-cadastro">Criar conta</button>
-    </div>
-
-    <h2 id="modal-titulo" class="sr-only">Acesso à conta</h2>
-
-    <form id="form-login" class="modal__form">
-      <label for="login-email">E-mail</label>
-      <input type="email" id="login-email" required autocomplete="email">
-      <label for="login-senha">Senha</label>
-      <input type="password" id="login-senha" required autocomplete="current-password">
-      <p class="form-msg" id="msg-login" role="status"></p>
-      <button type="submit" class="btn btn--primary">Entrar</button>
-    </form>
-
-    <form id="form-cadastro" class="modal__form hidden">
-      <label for="cad-nome">Nome completo</label>
-      <input type="text" id="cad-nome" required autocomplete="name">
-      <label for="cad-email">E-mail</label>
-      <input type="email" id="cad-email" required autocomplete="email">
-      <label for="cad-telefone">Telefone / WhatsApp</label>
-      <input type="tel" id="cad-telefone" required placeholder="(00) 00000-0000">
-      <label for="cad-senha">Senha</label>
-      <input type="password" id="cad-senha" required minlength="4" autocomplete="new-password">
-      <p class="form-msg" id="msg-cadastro" role="status"></p>
-      <button type="submit" class="btn btn--primary">Criar conta</button>
-    </form>
-  </div>
-</div>
 
 <script src="js/script.js"></script>
 </body>
