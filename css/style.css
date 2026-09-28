@@ -9,9 +9,9 @@
   --black-soft: #12100e;
   --black-elev: #181512;
   --line: #2b261f;
-  --gold: #c8a25c;
-  --gold-light: #e2c689;
-  --gold-dim: #6e5932;
+  --gold: #cb9d6a;       /* tirado da logo */
+  --gold-light: #e6c29a;
+  --gold-dim: #6f5236;
   --white: #f3eee5;      /* marfim, mais quente que branco puro */
   --gray: #a39a8d;
   --gray-soft: #6f675d;
@@ -133,21 +133,19 @@ p { margin: 0 0 1em; color: var(--gray); }
   align-items: center;
   gap: 10px;
 }
-.logo__scissors {
-  width: 26px;
-  height: 26px;
-  color: var(--white);
-  flex-shrink: 0;
+.logo__marca {
+  height: 34px;
+  width: auto;
 }
 .logo__word {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-transform: uppercase;
 }
-.logo__train { color: var(--gold); }
-.logo__barber { color: var(--white); font-weight: 500; letter-spacing: 0.08em; font-size: 0.85em; }
-.logo__scissors { color: var(--gold); }
+.logo--footer .logo__marca { height: 28px; }
 
 /* ---------- Header ---------- */
 .header {
@@ -225,7 +223,7 @@ p { margin: 0 0 1em; color: var(--gray); }
 
 /* ---------- Hero ---------- */
 .hero {
-  padding: 120px 0 100px;
+  padding: 72px 0 90px;
   border-bottom: 1px solid var(--line);
 }
 .hero__inner {
@@ -236,41 +234,26 @@ p { margin: 0 0 1em; color: var(--gray); }
 @keyframes hero-in {
   to { opacity: 1; transform: translateY(0); }
 }
-.hero__eyebrow {
-  color: var(--gray);
-  font-size: 0.9rem;
-  margin-bottom: 18px;
-}
+/* hero centralizado: a logo é a vitrine */
+.hero__inner { text-align: center; }
 .hero__title {
-  font-size: clamp(4.5rem, 16vw, 8rem);
-  line-height: 0.92;
-  margin: 0;
+  margin: 0 0 36px;
+  line-height: 0;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
 }
-.hero__train { color: var(--gold); letter-spacing: 0.04em; }
-/* "BARBER CLUB" pequeno e espaçado, como na logo */
-.hero__barber {
-  color: var(--white);
-  font-size: 0.26em;
-  font-weight: 500;
-  letter-spacing: 0.42em;
-  margin-top: 0.35em;
-}
-.hero__rule {
-  display: block;
-  width: 72px;
-  height: 3px;
-  background: var(--gold);
-  margin: 32px 0 24px;
+.hero__logo {
+  width: min(440px, 88vw);
+  height: auto;
 }
 .hero__tagline {
   font-size: 1.15rem;
   color: var(--gray);
   max-width: 34ch;
-  margin-bottom: 40px;
+  margin: 0 auto 40px;
 }
 .hero__actions {
+  justify-content: center;
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
@@ -841,7 +824,7 @@ input:focus, select:focus {
   gap: 12px;
 }
 .footer p { margin: 0; font-size: 0.85rem; }
-.logo--footer .logo__word { font-size: 1rem; }
+.logo--footer .logo__word { font-size: 0.8rem; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
@@ -880,7 +863,7 @@ input:focus, select:focus {
 }
 
 @media (max-width: 520px) {
-  .hero { padding: 90px 0 70px; }
+  .hero { padding: 48px 0 64px; }
   .agendar__box { padding: 22px; }
 }
 

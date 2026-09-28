@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0a09">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,13 +19,8 @@
 <header class="header" id="header">
   <div class="container header__inner">
     <a href="#topo" class="logo" aria-label="ZT Barber Club - início">
-      <svg class="logo__scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <circle cx="6" cy="6" r="2.6"></circle>
-        <circle cx="6" cy="18" r="2.6"></circle>
-        <line x1="8.1" y1="7.6" x2="20.5" y2="18.5"></line>
-        <line x1="8.1" y1="16.4" x2="20.5" y2="5.5"></line>
-      </svg>
-      <span class="logo__word"><span class="logo__train">ZT</span> <span class="logo__barber">Barber Club</span></span>
+      <img class="logo__marca" src="img/logo-marca.webp" alt="" width="293" height="240">
+      <span class="logo__word">Barber Club</span>
     </a>
 
     <nav class="nav" id="nav">
@@ -55,11 +53,9 @@
   <!-- ===== HERO ===== -->
   <section class="hero">
     <div class="container hero__inner">
-      <p class="hero__eyebrow">Barbearia</p>
       <h1 class="hero__title">
-        <span class="hero__train">ZT</span><span class="hero__barber">Barber Club</span>
+        <img class="hero__logo" src="img/logo.webp" alt="ZT Barber Club" width="900" height="660">
       </h1>
-      <span class="hero__rule" aria-hidden="true"></span>
       <p class="hero__tagline">Precisão e estilo em cada corte.</p>
       <div class="hero__actions">
         <a href="#agendar" class="btn btn--primary">Agendar horário</a>
@@ -233,7 +229,8 @@
 <footer class="footer">
   <div class="container footer__inner">
     <span class="logo logo--footer">
-      <span class="logo__train">ZT</span> <span class="logo__barber">Barber Club</span>
+      <img class="logo__marca" src="img/logo-marca.webp" alt="" width="293" height="240">
+      <span class="logo__word">Barber Club</span>
     </span>
     <p>&copy; <span id="ano"></span> ZT Barber Club. Todos os direitos reservados.</p>
   </div>
