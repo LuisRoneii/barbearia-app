@@ -61,9 +61,8 @@
 
   // troque nomes/especialidades/iniciais pelos barbeiros reais
   const BARBEIROS = [
-    { id: "lucas", nome: "Lucas Train", especialidade: "Degradê e barba desenhada" },
-    { id: "rafael", nome: "Rafael Nunes", especialidade: "Cortes clássicos e navalhado" },
-    { id: "enzo", nome: "Enzo Lima", especialidade: "Coloração e platinado" },
+    { id: "train", nome: "Train", especialidade: "Cortes e barba" },
+    { id: "zefe", nome: "Zefe", especialidade: "Cortes e barba" },
   ];
 
   const PORTFOLIO_PLACEHOLDERS = [
@@ -85,9 +84,24 @@
   ];
 
   // dias da semana em que a barbearia funciona (0 = domingo ... 6 = sábado)
-  const DIAS_FUNCIONAMENTO = [2, 3, 4, 5, 6]; // terça a sábado
-  const HORARIO_INICIO = 9;   // 09:00
-  const HORARIO_FIM = 19;     // 19:00
+  // expediente por dia da semana (0 = domingo ... 6 = sábado): lista de [abre, fecha]
+  const EXPEDIENTE = {
+    1: [["13:30", "20:00"]],
+    2: [["09:00", "12:00"], ["13:30", "20:00"]],
+    3: [["09:00", "12:00"], ["13:30", "20:00"]],
+    4: [["09:00", "12:00"], ["13:30", "20:00"]],
+    5: [["09:00", "12:00"], ["13:30", "20:00"]],
+    6: [["09:00", "12:00"], ["13:30", "16:00"]],
+  };
+  const DIAS_FUNCIONAMENTO = Object.keys(EXPEDIENTE).map(Number);
+
+  // feriados (AAAA-MM-DD) em que a barbearia não abre. Atualizar todo ano
+  // e incluir feriados municipais de Rio Negro, se houver.
+  const FERIADOS = new Set([
+    "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25",
+    "2027-01-01", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27",
+    "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25",
+  ]);
   const INTERVALO_MIN = 30;   // grade de horários de 30 em 30 min
   const DIAS_PARA_MOSTRAR = 7; // quantos dias futuros oferecer no passo 3
 
@@ -393,13 +407,22 @@
   }
 
   // gera a grade fixa de horários do dia (independente de ocupação)
-  function gradeDeHorarios() {
+  // períodos de atendimento de uma data (vazio em feriados e dias fechados)
+  function periodosDoDia(dataISO) {
+    if (FERIADOS.has(dataISO)) return [];
+    const [a, m, d] = dataISO.split("-").map(Number);
+    return EXPEDIENTE[new Date(a, m - 1, d).getDay()] || [];
+  }
+
+  function gradeDeHorarios(dataISO) {
     const horarios = [];
-    for (let h = HORARIO_INICIO; h < HORARIO_FIM; h++) {
-      for (let m = 0; m < 60; m += INTERVALO_MIN) {
-        horarios.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    periodosDoDia(dataISO).forEach(([abre, fecha]) => {
+      for (let t = paraMinutos(abre); t < paraMinutos(fecha); t += INTERVALO_MIN) {
+        const hh = String(Math.floor(t / 60)).padStart(2, "0");
+        const mm = String(t % 60).padStart(2, "0");
+        horarios.push(`${hh}:${mm}`);
       }
-    }
+    });
     return horarios;
   }
 
@@ -430,15 +453,16 @@
         return { ini, fim: ini + duracaoDoAgendamento(a) };
       });
 
-    const fimExpediente = HORARIO_FIM * 60;
+    const periodos = periodosDoDia(dataISO).map(([a, f]) => [paraMinutos(a), paraMinutos(f)]);
     const agora = new Date();
     const ehHoje = dataISO === paraISO(agora);
     const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
 
-    return gradeDeHorarios().filter((h) => {
+    return gradeDeHorarios(dataISO).filter((h) => {
       const ini = paraMinutos(h);
       const fim = ini + duracao;
-      if (fim > fimExpediente) return false;            // não termina depois de fechar
+      const periodo = periodos.find(([a, f]) => ini >= a && ini < f);
+      if (!periodo || fim > periodo[1]) return false;   // não passa do almoço nem do fechamento
       if (ehHoje && ini <= minutosAgora) return false;  // não oferece horário que já passou
       return !ocupados.some((o) => sobrepoe(ini, fim, o.ini, o.fim));
     });
@@ -449,7 +473,7 @@
     const cursor = new Date();
     cursor.setHours(0, 0, 0, 0);
     while (dias.length < qtd) {
-      if (DIAS_FUNCIONAMENTO.includes(cursor.getDay())) {
+      if (DIAS_FUNCIONAMENTO.includes(cursor.getDay()) && !FERIADOS.has(paraISO(cursor))) {
         dias.push(new Date(cursor));
       }
       cursor.setDate(cursor.getDate() + 1);
