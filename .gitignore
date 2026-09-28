@@ -3,3 +3,6 @@
 Thumbs.db
 node_modules/
 *.log
+
+# variáveis de ambiente (senha do banco etc.) — nunca subir
+.env
