@@ -76,9 +76,13 @@
   /* ---------------------------------------------------------------------
      Conteúdo fixo: portfólio, depoimentos, FAQ
   --------------------------------------------------------------------- */
-  const PORTFOLIO_PLACEHOLDERS = [
-    "Degradê navalhado", "Barba desenhada", "Corte social", "Risco lateral",
-    "Combo completo", "Pompadour", "Barba alinhada", "Degradê baixo",
+  // fotos em img/portfolio/ (720x960, JPG). Para trocar, substitua o arquivo
+  // mantendo o nome, ou edite esta lista.
+  const PORTFOLIO = [
+    { foto: "img/portfolio/corte-1.jpg", legenda: "Mullet texturizado com barba" },
+    { foto: "img/portfolio/corte-2.jpg", legenda: "Degradê com franja" },
+    { foto: "img/portfolio/corte-3.jpg", legenda: "Low fade texturizado" },
+    { foto: "img/portfolio/corte-4.jpg", legenda: "Buzz cut com degradê" },
   ];
 
   const DEPOIMENTOS = [
@@ -199,9 +203,21 @@
   function renderizarPortfolio() {
     const ul = $("lista-portfolio");
     ul.innerHTML = "";
-    PORTFOLIO_PLACEHOLDERS.forEach((legenda) => {
+    PORTFOLIO.forEach(({ foto, legenda }) => {
       const li = document.createElement("li");
-      li.textContent = legenda;
+      li.className = "portfolio__grid-foto";
+      const img = document.createElement("img");
+      img.src = foto;
+      img.alt = legenda;
+      img.loading = "lazy";
+      img.width = 720;
+      img.height = 960;
+      // se a foto não carregar, mostra só a legenda no lugar
+      img.addEventListener("error", () => {
+        li.className = "";
+        li.textContent = legenda;
+      });
+      li.appendChild(img);
       ul.appendChild(li);
     });
   }
