@@ -12,7 +12,7 @@ Pré-requisitos: Node.js 20+ e o banco `zt_barber` criado com
 cd backend
 npm install
 cp .env.example .env      # no Windows: copy .env.example .env
-# edite o .env e coloque a senha do seu PostgreSQL
+# edite o .env: senha do PostgreSQL e JWT_SEGREDO
 npm run dev
 ```
 
@@ -33,6 +33,29 @@ Todas as rotas usam o `slug` da barbearia: `zt-barber`.
 | GET | `/api/zt-barber/dias?barbeiro_id=1&servico_id=1&quantidade=14` | próximos dias: aberto, lotado, fechado ou bloqueado (feriado) |
 | GET | `/api/zt-barber/horarios?barbeiro_id=1&servico_id=1&data=2026-09-29` | horários livres do dia |
 | POST | `/api/zt-barber/agendamentos` | cria um agendamento |
+
+### Painel dos donos (exige login)
+
+| Método | Rota | O que faz |
+|---|---|---|
+| POST | `/api/zt-barber/admin/login` | e-mail + senha → token (vale 12h) |
+| GET | `/api/zt-barber/admin/agenda?data=2026-10-01` | agendamentos e bloqueios do dia |
+| PATCH | `/api/zt-barber/admin/agendamentos/:id` | `cancelar`, `concluir` (valor + forma de pagamento), `nao_compareceu`, `reabrir` |
+| POST | `/api/zt-barber/admin/encaixe` | lança cliente que chegou sem marcar |
+| GET/POST/DELETE | `/api/zt-barber/admin/bloqueios` | folgas e feriados; ao criar, avisa quem já estava marcado |
+| GET | `/api/zt-barber/admin/faturamento?mes=2026-10` | total do mês por barbeiro e por forma de pagamento |
+
+As rotas do painel recebem o token no cabeçalho `Authorization: Bearer <token>`.
+A senha fica guardada com **bcrypt** (nunca em texto puro).
+
+**Criar a conta de cada dono** (uma vez, com o banco já criado):
+
+```bash
+npm run criar-admin
+```
+
+O script pergunta nome, e-mail, o barbeiro ligado à conta e a senha.
+Rodar de novo com o mesmo e-mail troca a senha.
 
 ### Horários livres
 
@@ -78,8 +101,13 @@ backend/
 │   ├── db.js              # conexão com o PostgreSQL
 │   ├── agenda.js          # cálculo de horários livres (sem banco, testável)
 │   ├── erros.js           # respostas de erro padronizadas
+│   ├── comum.js           # validações e buscas usadas pelas duas rotas
+│   ├── autenticacao.js    # login: bcrypt + token JWT
 │   └── rotas/
-│       └── publicas.js    # rotas usadas pelo site
+│       ├── publicas.js    # rotas usadas pelo site
+│       └── admin.js       # rotas do painel (com login)
+├── scripts/
+│   └── criar-admin.js     # cria/atualiza conta de dono
 ├── test/
 │   └── agenda.test.js
 ├── .env.example
@@ -88,7 +116,6 @@ backend/
 
 ## Próximos passos
 
-- Autenticação dos donos + painel (#3, #18)
 - Cancelamento pelo cliente (depende de decidir se o cliente terá conta)
 - Confirmação via WhatsApp (#17)
 - Trocar o `localStorage` do site pelas chamadas desta API (#5)

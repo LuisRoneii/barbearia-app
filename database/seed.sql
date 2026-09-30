@@ -16,7 +16,9 @@ INSERT INTO servicos (barbearia_id, nome, duracao_min, preco) VALUES
   (1, 'Corte',         30, 35.00),
   (1, 'Barba',         30, 30.00),
   (1, 'Corte + Barba', 60, 55.00),
-  (1, 'Sobrancelha',    5,  5.00);
+  (1, 'Sobrancelha',    5,  5.00),
+  (1, 'Corte + Sobrancelha',          35, 40.00),
+  (1, 'Corte + Barba + Sobrancelha',  65, 60.00);
 
 -- expediente da barbearia (vale para os dois barbeiros)
 INSERT INTO expediente (barbearia_id, dia_semana, hora_inicio, hora_fim) VALUES

@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import { pool } from "./db.js";
 import { rotasPublicas } from "./rotas/publicas.js";
+import { rotasAdmin } from "./rotas/admin.js";
+import { carregarBarbearia } from "./comum.js";
 import { tratarErros } from "./erros.js";
 
 export const app = express();
@@ -20,7 +22,10 @@ app.get("/api/saude", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.use("/api/:slug", rotasPublicas);
+// toda rota com barbearia na URL carrega a barbearia primeiro
+app.use("/api/:slug", carregarBarbearia);
+app.use("/api/:slug/admin", rotasAdmin);   // painel dos donos (login)
+app.use("/api/:slug", rotasPublicas);      // site (sem login)
 
 app.use((req, res) => res.status(404).json({ erro: "Rota não encontrada." }));
 app.use(tratarErros);
