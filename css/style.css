@@ -825,6 +825,8 @@ input:focus, select:focus {
 }
 .footer p { margin: 0; font-size: 0.85rem; }
 .logo--footer .logo__word { font-size: 0.8rem; }
+.footer__painel { color: var(--gray-soft); margin-left: 8px; border-bottom: 1px solid var(--line); }
+.footer__painel:hover { color: var(--gold); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {

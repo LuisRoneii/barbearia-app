@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel — ZT Barber Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0a09">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/painel.css">
+</head>
+<body class="painel">
+
+<header class="header">
+  <div class="container header__inner">
+    <a href="index.html" class="logo" aria-label="Voltar ao site">
+      <img class="logo__marca" src="img/logo-marca.webp" alt="" width="293" height="240">
+      <span class="logo__word">Painel</span>
+    </a>
+    <div class="painel__usuario hidden" id="usuario">
+      <span id="usuario-nome"></span>
+      <button class="btn btn--ghost" id="btn-sair" type="button">Sair</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ===== LOGIN ===== -->
+  <section class="painel__login" id="tela-login">
+    <h1>Área do barbeiro</h1>
+    <p>Entre com o e-mail e a senha da sua conta.</p>
+    <form id="form-login" class="painel__form" novalidate>
+      <label for="login-email">E-mail</label>
+      <input type="email" id="login-email" autocomplete="username" required>
+      <label for="login-senha">Senha</label>
+      <input type="password" id="login-senha" autocomplete="current-password" required>
+      <p class="form-msg" id="msg-login" role="status"></p>
+      <button class="btn btn--primary" type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <!-- ===== APLICAÇÃO ===== -->
+  <section class="hidden" id="tela-app">
+    <nav class="painel__abas" role="tablist">
+      <button class="painel__aba is-ativa" data-aba="agenda" role="tab" type="button">Agenda</button>
+      <button class="painel__aba" data-aba="bloqueios" role="tab" type="button">Bloqueios</button>
+      <button class="painel__aba" data-aba="faturamento" role="tab" type="button">Faturamento</button>
+    </nav>
+
+    <!-- Agenda -->
+    <div class="painel__painel" data-painel="agenda">
+      <div class="agenda__barra">
+        <div class="agenda__dia">
+          <button class="agenda__seta" id="dia-anterior" type="button" aria-label="Dia anterior">&lsaquo;</button>
+          <input type="date" id="agenda-data" aria-label="Data">
+          <button class="agenda__seta" id="dia-seguinte" type="button" aria-label="Próximo dia">&rsaquo;</button>
+          <button class="btn btn--ghost" id="agenda-hoje" type="button">Hoje</button>
+        </div>
+        <div class="agenda__filtros">
+          <select id="agenda-barbeiro" aria-label="Barbeiro">
+            <option value="">Todos os barbeiros</option>
+          </select>
+          <button class="btn btn--outline" id="btn-encaixe" type="button">+ Encaixe</button>
+        </div>
+      </div>
+
+      <form class="painel__form painel__caixa hidden" id="form-encaixe" novalidate>
+        <h2>Encaixe</h2>
+        <p class="painel__ajuda">Cliente que chegou sem marcar. O horário deixa de aparecer livre no site.</p>
+        <div class="painel__grade">
+          <div><label for="enc-barbeiro">Barbeiro</label><select id="enc-barbeiro"></select></div>
+          <div><label for="enc-servico">Serviço</label><select id="enc-servico"></select></div>
+          <div><label for="enc-horario">Horário</label><input type="time" id="enc-horario" step="300"></div>
+          <div><label for="enc-nome">Nome do cliente</label><input type="text" id="enc-nome" maxlength="150"></div>
+          <div><label for="enc-telefone">WhatsApp (opcional)</label><input type="tel" id="enc-telefone" placeholder="(47) 99999-9999"></div>
+        </div>
+        <p class="form-msg" id="msg-encaixe" role="status"></p>
+        <div class="painel__acoes">
+          <button class="btn btn--primary" type="submit">Lançar encaixe</button>
+          <button class="btn btn--ghost" type="button" id="cancelar-encaixe">Fechar</button>
+        </div>
+      </form>
+
+      <p class="form-msg" id="msg-agenda" role="status"></p>
+      <div id="agenda-bloqueios"></div>
+      <ul class="agenda__lista" id="agenda-lista"></ul>
+    </div>
+
+    <!-- Bloqueios -->
+    <div class="painel__painel hidden" data-painel="bloqueios">
+      <form class="painel__form painel__caixa" id="form-bloqueio" novalidate>
+        <h2>Novo bloqueio</h2>
+        <p class="painel__ajuda">Folga, feriado ou compromisso. Os horários bloqueados somem do site.</p>
+        <div class="painel__grade">
+          <div>
+            <label for="blq-barbeiro">Para quem</label>
+            <select id="blq-barbeiro"><option value="">Barbearia toda</option></select>
+          </div>
+          <div>
+            <label for="blq-tipo">Tipo</label>
+            <select id="blq-tipo">
+              <option value="Folga">Folga</option>
+              <option value="Feriado">Feriado</option>
+              <option value="Fechado">Outro motivo</option>
+            </select>
+          </div>
+          <div><label for="blq-inicio">De</label><input type="date" id="blq-inicio"></div>
+          <div><label for="blq-fim">Até</label><input type="date" id="blq-fim"></div>
+          <div class="painel__check">
+            <input type="checkbox" id="blq-dia-inteiro" checked>
+            <label for="blq-dia-inteiro">Dia inteiro</label>
+          </div>
+          <div class="blq-horas hidden"><label for="blq-hora-inicio">Das</label><input type="time" id="blq-hora-inicio" value="13:30"></div>
+          <div class="blq-horas hidden"><label for="blq-hora-fim">Às</label><input type="time" id="blq-hora-fim" value="20:00"></div>
+          <div class="painel__grade-largo"><label for="blq-descricao">Descrição (aparece para o cliente)</label><input type="text" id="blq-descricao" maxlength="120" placeholder="Ex: Dia das Crianças"></div>
+        </div>
+        <p class="form-msg" id="msg-bloqueio" role="status"></p>
+        <div id="blq-conflitos"></div>
+        <button class="btn btn--primary" type="submit">Bloquear</button>
+      </form>
+
+      <h2 class="painel__subtitulo">Próximos bloqueios</h2>
+      <ul class="bloqueios__lista" id="bloqueios-lista"></ul>
+    </div>
+
+    <!-- Faturamento -->
+    <div class="painel__painel hidden" data-painel="faturamento">
+      <div class="agenda__barra">
+        <div class="agenda__dia">
+          <label for="fat-mes" class="sr-only">Mês</label>
+          <input type="month" id="fat-mes">
+        </div>
+      </div>
+      <p class="form-msg" id="msg-faturamento" role="status"></p>
+      <div class="fat__total" id="fat-total"></div>
+      <div class="fat__cards" id="fat-cards"></div>
+      <p class="painel__ajuda">Só entram atendimentos marcados como <strong>concluídos</strong>, com o valor que foi cobrado.</p>
+    </div>
+  </section>
+</main>
+
+<script src="js/painel.js"></script>
+</body>
+</html>
