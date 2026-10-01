@@ -179,7 +179,9 @@
       const li = document.createElement("li");
       li.className = "barbeiro-card";
       li.innerHTML = `
-        <div class="barbeiro-card__foto">${esc(iniciais(b.nome))}</div>
+                <div class="barbeiro-card__foto">${b.foto_url
+          ? `<img src="${esc(b.foto_url)}" alt="${esc(b.nome)}">`
+          : esc(iniciais(b.nome))}</div>
         <p class="barbeiro-card__nome">${esc(b.nome)}</p>
         <p class="barbeiro-card__especialidade">${esc(b.especialidade || "")}</p>`;
       ul.appendChild(li);
