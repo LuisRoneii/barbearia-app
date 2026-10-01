@@ -410,7 +410,8 @@
     }
     const [ano, mes] = f.mes.split("-");
     const nomeMes = new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    $("fat-total").innerHTML = `${reais(f.total)}<small>Total da barbearia em ${esc(nomeMes)}</small>`;
+    const nomeMesMaiusculo = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+    $("fat-total").innerHTML = `${reais(f.total)}<small>Total da barbearia em ${esc(nomeMesMaiusculo)}</small>`;
     $("fat-cards").innerHTML = f.barbeiros.map((b) => `
       <article class="fat__card">
         <h3>${esc(b.barbeiro)}</h3>
