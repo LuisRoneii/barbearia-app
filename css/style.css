@@ -382,6 +382,12 @@ p { margin: 0 0 1em; color: var(--gray); }
   font-size: 2rem;
   object-fit: cover;
 }
+.barbeiro-card__foto { overflow: hidden; }
+.barbeiro-card__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .barbeiro-card__nome {
   font-family: var(--font-display);
   font-weight: 600;
@@ -398,6 +404,20 @@ p { margin: 0 0 1em; color: var(--gray); }
 .portfolio { padding: 100px 0; border-bottom: 1px solid var(--line); }
 .portfolio__title { font-size: 2rem; }
 .portfolio__sub { max-width: 52ch; margin-bottom: 40px; }
+
+.portfolio__video {
+  max-width: 360px;
+  margin: 0 auto 32px;
+}
+.portfolio__video video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  background: var(--black);
+}
 
 .portfolio__grid {
   list-style: none;
