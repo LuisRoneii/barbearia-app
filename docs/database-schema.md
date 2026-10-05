@@ -29,6 +29,13 @@ erDiagram
     CLIENTES |o--o{ AGENDAMENTOS : marca
     BARBEIROS |o--o{ BLOQUEIOS : "folga de"
     BARBEIROS |o--o| CONTAS_ADMIN : "loga como"
+    BARBEARIAS ||--o{ PLANOS : vende
+    PLANOS ||--o{ PLANO_SERVICOS : "vale para"
+    SERVICOS ||--o{ PLANO_SERVICOS : "incluído em"
+    PLANOS ||--o{ ASSINATURAS : "é pago em"
+    CLIENTES ||--o{ ASSINATURAS : paga
+    BARBEIROS ||--o{ ASSINATURAS : vende
+    ASSINATURAS |o--o{ AGENDAMENTOS : "visita de"
 
     BARBEARIAS {
         int id PK
@@ -100,8 +107,36 @@ erDiagram
         timestamptz fim
         decimal preco_cobrado
         string forma_pagamento
+        int assinatura_id FK
         string status
         string origem
+    }
+
+        PLANOS {
+        int id PK
+        int barbearia_id FK
+        string nome
+        decimal valor
+        int visitas_por_pagamento
+        int validade_meses
+        bool ativo
+    }
+    PLANO_SERVICOS {
+        int barbearia_id FK
+        int plano_id PK
+        int servico_id PK
+    }
+
+    ASSINATURAS {
+        int id PK
+        int barbearia_id FK
+        int cliente_id FK
+        int barbeiro_id FK
+        int plano_id FK
+        date pago_em
+        decimal valor
+        string forma_pagamento
+        date valido_ate
     }
 ```
 
@@ -213,10 +248,50 @@ atualizada uma vez por ano.
 | barbeiro_id, servico_id | FK | |
 | inicio, fim | timestamptz | `fim = inicio + duracao_min` do serviço |
 | preco_cobrado | numeric(10,2) | copia o preço do serviço ao agendar; o barbeiro pode alterar (desconto) ao concluir |
-| forma_pagamento | `pix` \| `dinheiro` \| `debito` \| `credito` | preenchida ao concluir |
+| forma_pagamento | `pix` \| `dinheiro` \| `debito` \| `credito` \| `plano` | preenchida ao concluir; `plano` = visita do plano mensal, com `preco_cobrado` 0 |
+| assinatura_id | FK, nulo | de qual pagamento de plano saiu a visita; volta a nulo ao desfazer ou cancelar |
 | status | `confirmado` \| `concluido` \| `cancelado` \| `nao_compareceu` | |
 | origem | `site` \| `encaixe` \| `painel` | |
 | observacao | varchar | |
+
+
+### `planos`
+O que a barbearia vende: Plano Corte (R$ 110) e Plano Completo (R$ 160).
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial PK | |
+| barbearia_id | FK | |
+| nome | varchar(100) | único por barbearia |
+| valor | numeric(10,2) | |
+| visitas_por_pagamento | int | 4 |
+| validade_meses | int | 2: cada pagamento vale por 2 meses |
+| ativo | boolean | |
+
+### `plano_servicos`
+Em quais serviços cada plano pode ser usado. É o que bloqueia, por exemplo, barba no Plano Corte.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| barbearia_id | FK | |
+| plano_id, servico_id | PK composta, FK | |
+
+### `assinaturas`
+**Um registro por pagamento.** Cada um libera 4 visitas. Pagou em outubro e novembro = 2 registros = até 8 visitas.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial PK | |
+| barbearia_id | FK | |
+| cliente_id | FK | o cliente é criado na venda se ainda não existir |
+| barbeiro_id | FK | quem vendeu; o plano só vale com ele |
+| plano_id | FK | |
+| pago_em | date | só do dia 1 ao 5 do mês (`CHECK`) |
+| valor | numeric(10,2) | copiado do plano na hora da venda |
+| forma_pagamento | `pix` \| `dinheiro` \| `debito` \| `credito` | |
+| valido_ate | date | `pago_em` + 2 meses; o último dia ainda vale |
+
+Visitas restantes de um pagamento = `visitas_por_pagamento` − agendamentos **concluídos** com aquele `assinatura_id`. Não é guardado, é calculado.
 
 ---
 
@@ -242,6 +317,9 @@ barbearia 2 com um barbeiro da barbearia 1.
 
 **3. Valores válidos.** `CHECK` em status, forma de pagamento, papel,
 `fim > inicio`, preço e duração não negativos.
+
+**4. Plano só do dia 1 ao 5.** O `CHECK (EXTRACT(DAY FROM pago_em) BETWEEN 1 AND 5)`
+da tabela `assinaturas` recusa venda fora da janela, mesmo se a API errar.
 
 ---
 
