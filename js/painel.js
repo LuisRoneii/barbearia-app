@@ -18,7 +18,9 @@
   const FORMAS = [
     ["pix", "PIX"], ["dinheiro", "Dinheiro"], ["debito", "Débito"], ["credito", "Crédito"],
   ];
-  const NOME_FORMA = Object.fromEntries(FORMAS);
+  // ao concluir também dá para usar o plano mensal (R$ 0, desconta 1 visita)
+  const FORMAS_CONCLUIR = [...FORMAS, ["plano", "Plano mensal"]];
+  const NOME_FORMA = Object.fromEntries(FORMAS_CONCLUIR);
   const NOME_STATUS = {
     confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado", nao_compareceu: "Não veio",
   };
@@ -247,7 +249,7 @@
     return li;
   }
 
-  function abrirConcluir(li, a) {
+    function abrirConcluir(li, a) {
     if (li.querySelector(".ag__concluir")) return;
     let forma = a.forma_pagamento || null;
     const caixa = document.createElement("div");
@@ -256,20 +258,33 @@
       <label>Serviço feito<select>${SERVICOS.map((s) =>
         `<option value="${s.id}"${s.id === a.servico_id ? " selected" : ""}>${esc(s.nome)}</option>`).join("")}</select></label>
       <label>Valor cobrado<input type="number" min="0" step="0.5" value="${Number(a.preco_cobrado)}"></label>
-      <div class="ag__formas">${FORMAS.map(([v, t]) =>
+      <div class="ag__formas">${FORMAS_CONCLUIR.map(([v, t]) =>
         `<button type="button" class="ag__forma${v === forma ? " is-sel" : ""}" data-forma="${v}">${t}</button>`).join("")}</div>
       <button type="button" class="btn btn--primary">Salvar</button>`;
     caixa.querySelectorAll(".ag__forma").forEach((b) => b.addEventListener("click", () => {
       forma = b.dataset.forma;
       caixa.querySelectorAll(".ag__forma").forEach((x) => x.classList.toggle("is-sel", x === b));
+      atualizarValor();
     }));
     // trocou o serviço: o valor acompanha o preço da tabela (ainda dá para editar)
     const selServico = caixa.querySelector("select");
     const inputValor = caixa.querySelector("input");
     selServico.addEventListener("change", () => {
       const s = SERVICOS.find((x) => x.id === Number(selServico.value));
-      if (s) inputValor.value = Number(s.preco);
+      if (s && forma !== "plano") inputValor.value = Number(s.preco);
     });
+    // plano mensal: o atendimento fica com R$ 0, porque o dinheiro entrou na venda do plano
+    function atualizarValor() {
+      const plano = forma === "plano";
+      if (plano) {
+        inputValor.value = 0;
+      } else if (inputValor.disabled) {
+        const s = SERVICOS.find((x) => x.id === Number(selServico.value));
+        if (s) inputValor.value = Number(s.preco);
+      }
+      inputValor.disabled = plano;
+    }
+    atualizarValor();
     caixa.querySelector(".btn--primary").addEventListener("click", () => {
       if (!forma) return msg($("msg-agenda"), "Escolha a forma de pagamento.");
       mudarStatus(a, "concluir", {
