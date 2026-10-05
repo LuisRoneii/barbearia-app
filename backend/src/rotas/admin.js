@@ -165,7 +165,11 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
     ({ rows: [atualizado] } = await pool.query(
       `UPDATE agendamentos
           SET status = $1::varchar,
-              preco_cobrado   = COALESCE($2::numeric, preco_cobrado),
+          preco_cobrado   = CASE WHEN $2::numeric IS NOT NULL THEN $2::numeric
+                                  -- saiu do plano (desfazer): volta o preço do serviço
+                                  WHEN forma_pagamento = 'plano'
+                                    THEN (SELECT s.preco FROM servicos s WHERE s.id = agendamentos.servico_id)
+                                  ELSE preco_cobrado END,
               forma_pagamento = CASE WHEN $1::varchar = 'concluido' THEN $3::varchar ELSE NULL END,
               assinatura_id   = CASE WHEN $1::varchar = 'concluido' THEN $7::int ELSE NULL END,
               servico_id      = COALESCE($5::int, servico_id),
