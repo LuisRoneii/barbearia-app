@@ -192,6 +192,7 @@
 }
 .ag__concluir label { display: flex; flex-direction: column; gap: 4px; }
 .ag__concluir input { width: 110px; }
+.ag__concluir select { width: auto; max-width: 100%; }
 .ag__formas { display: flex; gap: 6px; flex-wrap: wrap; }
 .ag__forma {
   background: var(--black);
