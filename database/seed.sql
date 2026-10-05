@@ -20,6 +20,28 @@ INSERT INTO servicos (barbearia_id, nome, duracao_min, preco) VALUES
   (1, 'Corte + Sobrancelha',          35, 40.00),
   (1, 'Corte + Barba + Sobrancelha',  65, 60.00);
 
+  -- planos mensais (#19) e em quais serviços cada um vale
+INSERT INTO planos (barbearia_id, nome, valor)
+SELECT 1, v.nome, v.valor
+  FROM (VALUES ('Plano Corte', 110.00),
+               ('Plano Completo', 160.00)) AS v(nome, valor)
+ WHERE NOT EXISTS (SELECT 1 FROM planos p WHERE p.barbearia_id = 1 AND p.nome = v.nome);
+
+INSERT INTO plano_servicos (barbearia_id, plano_id, servico_id)
+SELECT 1, p.id, s.id
+  FROM (VALUES ('Plano Corte',    'Corte'),
+               ('Plano Corte',    'Sobrancelha'),
+               ('Plano Corte',    'Corte + Sobrancelha'),
+               ('Plano Completo', 'Corte'),
+               ('Plano Completo', 'Barba'),
+               ('Plano Completo', 'Sobrancelha'),
+               ('Plano Completo', 'Corte + Barba'),
+               ('Plano Completo', 'Corte + Sobrancelha'),
+               ('Plano Completo', 'Corte + Barba + Sobrancelha')) AS v(plano, servico)
+  JOIN planos   p ON p.barbearia_id = 1 AND p.nome = v.plano
+  JOIN servicos s ON s.barbearia_id = 1 AND s.nome = v.servico
+ON CONFLICT DO NOTHING;
+
 -- expediente da barbearia (vale para os dois barbeiros)
 INSERT INTO expediente (barbearia_id, dia_semana, hora_inicio, hora_fim) VALUES
   (1, 1, '13:30', '20:00'),                              -- segunda
