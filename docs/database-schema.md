@@ -112,7 +112,7 @@ erDiagram
         string origem
     }
 
-        PLANOS {
+    PLANOS {
         int id PK
         int barbearia_id FK
         string nome
@@ -373,7 +373,6 @@ psql -U postgres -d zt_barber -f database/seed.sql
 
 | Tabela | Quando |
 |---|---|
-| `planos`, `assinaturas` | planos mensais, versão 2: R$110 = 4 cortes + sobrancelha de brinde; R$160 = 4 cortes + 4 barbas. Não usados acumulam, com limite de 4 |
 | `mensagens_whatsapp` | log de confirmações/lembretes enviados, para não mandar em duplicidade |
 | `avaliacoes` | depoimentos reais no site |
 
