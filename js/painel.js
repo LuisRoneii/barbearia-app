@@ -525,13 +525,23 @@
         <p class="fat__valor">${reais(b.total)}</p>
         <ul class="fat__linhas">
           <li><span>Atendimentos</span><span>${b.atendimentos}</span></li>
-          <li><span>Ticket médio</span><span>${b.atendimentos ? reais(b.total / b.atendimentos) : "—"}</span></li>
+          <li><span>Pelo plano mensal</span><span>${b.visitas_plano}</span></li>
+          <li><span>Ticket médio</span><span>${ticketMedio(b)}</span></li>
           ${FORMAS.map(([v, t]) => `<li><span>${t}</span><span>${reais(b.por_forma[v])}</span></li>`).join("")}
+          <li><span>Planos vendidos</span><span>${b.planos.vendidos} · ${reais(b.planos.total)}</span></li>
+          ${Object.entries(b.planos.por_plano).map(([nome, p]) =>
+            `<li><span>${esc(nome)}</span><span>${p.quantidade} · ${reais(p.valor)}</span></li>`).join("")}
           <li><span>Faltas</span><span>${b.faltas}</span></li>
           <li><span>Cancelados</span><span>${b.cancelados}</span></li>
           <li><span>Ainda sem concluir</span><span>${b.pendentes}</span></li>
         </ul>
       </article>`).join("");
+  }
+
+  // ticket médio só dos atendimentos pagos na hora: no plano o dinheiro entra na venda
+  function ticketMedio(b) {
+    const pagos = b.atendimentos - b.visitas_plano;
+    return pagos ? reais((b.total - b.planos.total) / pagos) : "—";
   }
 
   /* ---------------------------------------------------------------------
