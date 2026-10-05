@@ -112,6 +112,54 @@ CREATE TABLE bloqueios (
 );
 
 -- ---------------------------------------------------------------------
+-- planos: o que a barbearia vende (Plano Corte, Plano Completo)
+-- ---------------------------------------------------------------------
+CREATE TABLE  planos (
+  id                     SERIAL PRIMARY KEY,
+  barbearia_id           INT NOT NULL REFERENCES barbearias(id),
+  nome                   VARCHAR(100) NOT NULL,
+  valor                  NUMERIC(10,2) NOT NULL CHECK (valor >= 0),
+  visitas_por_pagamento  INT NOT NULL DEFAULT 4 CHECK (visitas_por_pagamento > 0),
+  validade_meses         INT NOT NULL DEFAULT 2 CHECK (validade_meses > 0),
+  ativo                  BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE (barbearia_id, nome),
+  UNIQUE (barbearia_id, id)
+);
+
+-- ---------------------------------------------------------------------
+-- plano_servicos: em quais serviços cada plano pode ser usado
+-- ---------------------------------------------------------------------
+CREATE TABLE  plano_servicos (
+  barbearia_id  INT NOT NULL,
+  plano_id      INT NOT NULL,
+  servico_id    INT NOT NULL,
+  PRIMARY KEY (plano_id, servico_id),
+  FOREIGN KEY (barbearia_id, plano_id)   REFERENCES planos   (barbearia_id, id),
+  FOREIGN KEY (barbearia_id, servico_id) REFERENCES servicos (barbearia_id, id)
+);
+
+-- ---------------------------------------------------------------------
+-- assinaturas: UM registro por pagamento (cada um libera 4 visitas)
+-- ---------------------------------------------------------------------
+CREATE TABLE  assinaturas (
+  id               SERIAL PRIMARY KEY,
+  barbearia_id     INT NOT NULL REFERENCES barbearias(id),
+  cliente_id       INT NOT NULL,
+  barbeiro_id      INT NOT NULL,           -- quem vendeu = quem atende
+  plano_id         INT NOT NULL,
+  pago_em          DATE NOT NULL,
+  valor            NUMERIC(10,2) NOT NULL CHECK (valor >= 0),  -- copiado do plano na hora
+  forma_pagamento  VARCHAR(20) NOT NULL
+                   CHECK (forma_pagamento IN ('pix', 'dinheiro', 'debito', 'credito')),
+  valido_ate       DATE NOT NULL,          -- pago_em + validade (o último dia ainda vale)
+  criado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (EXTRACT(DAY FROM pago_em) BETWEEN 1 AND 5),   -- só do dia 1 ao 5
+  CHECK (valido_ate > pago_em),
+  UNIQUE (barbearia_id, id),
+  FOREIGN KEY (barbearia_id, cliente_id)  REFERENCES clientes  (barbearia_id, id),
+  FOREIGN KEY (barbearia_id, barbeiro_id) REFERENCES barbeiros (barbearia_id, id),
+  FOREIGN KEY (barbearia_id, plano_id)    REFERENCES planos    (barbearia_id, id)
+);-- ---------------------------------------------------------------------
 -- agendamentos
 -- ---------------------------------------------------------------------
 CREATE TABLE agendamentos (
@@ -125,7 +173,8 @@ CREATE TABLE agendamentos (
   inicio            TIMESTAMPTZ NOT NULL,
   fim               TIMESTAMPTZ NOT NULL,
   preco_cobrado     NUMERIC(10,2) NOT NULL CHECK (preco_cobrado >= 0),
-  forma_pagamento   VARCHAR(20) CHECK (forma_pagamento IN ('pix', 'dinheiro', 'debito', 'credito')),
+  forma_pagamento   VARCHAR(20) CHECK (forma_pagamento IN ('pix', 'dinheiro', 'debito', 'credito', 'plano')),
+  assinatura_id     INT,                   -- de qual pagamento de plano saiu a visita
   status            VARCHAR(20) NOT NULL DEFAULT 'confirmado'
                     CHECK (status IN ('confirmado', 'concluido', 'cancelado', 'nao_compareceu')),
   origem            VARCHAR(20) NOT NULL DEFAULT 'site'
@@ -138,6 +187,7 @@ CREATE TABLE agendamentos (
   FOREIGN KEY (barbearia_id, barbeiro_id) REFERENCES barbeiros (barbearia_id, id),
   FOREIGN KEY (barbearia_id, servico_id)  REFERENCES servicos  (barbearia_id, id),
   FOREIGN KEY (barbearia_id, cliente_id)  REFERENCES clientes  (barbearia_id, id),
+  FOREIGN KEY (barbearia_id, assinatura_id) REFERENCES assinaturas (barbearia_id, id),
 
   -- o mesmo barbeiro não pode ter dois agendamentos que se sobreponham
   -- (cancelados não contam, liberam o horário)
@@ -149,3 +199,4 @@ CREATE TABLE agendamentos (
 CREATE INDEX idx_agendamentos_barbearia_inicio ON agendamentos (barbearia_id, inicio);
 CREATE INDEX idx_agendamentos_cliente         ON agendamentos (cliente_id);
 CREATE INDEX idx_bloqueios_barbearia_inicio   ON bloqueios    (barbearia_id, inicio);
+CREATE INDEX idx_assinaturas_cliente          ON assinaturas  (cliente_id);
