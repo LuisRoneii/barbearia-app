@@ -18,7 +18,9 @@
   const FORMAS = [
     ["pix", "PIX"], ["dinheiro", "Dinheiro"], ["debito", "Débito"], ["credito", "Crédito"],
   ];
-  const NOME_FORMA = Object.fromEntries(FORMAS);
+  // ao concluir também dá para usar o plano mensal (R$ 0, desconta 1 visita)
+  const FORMAS_CONCLUIR = [...FORMAS, ["plano", "Plano mensal"]];
+  const NOME_FORMA = Object.fromEntries(FORMAS_CONCLUIR);
   const NOME_STATUS = {
     confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado", nao_compareceu: "Não veio",
   };
@@ -129,7 +131,9 @@
   /* ---------------------------------------------------------------------
      Abas
   --------------------------------------------------------------------- */
-  const carregarAba = { agenda: carregarAgenda, bloqueios: carregarBloqueios, faturamento: carregarFaturamento };
+  const carregarAba = {
+    agenda: carregarAgenda, bloqueios: carregarBloqueios, planos: carregarPlanos, faturamento: carregarFaturamento,
+  };
 
   document.querySelectorAll(".painel__aba").forEach((aba) => {
     aba.addEventListener("click", () => {
@@ -156,10 +160,13 @@
     $("agenda-barbeiro").innerHTML = `<option value="">Todos os barbeiros</option>${opcoesBarbeiros}`;
     $("enc-barbeiro").innerHTML = opcoesBarbeiros;
     $("blq-barbeiro").innerHTML = `<option value="">Barbearia toda</option>${opcoesBarbeiros}`;
+    $("pln-barbeiro").innerHTML = opcoesBarbeiros;
+    $("pln-forma").innerHTML = FORMAS.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
     $("enc-servico").innerHTML = SERVICOS
       .map((s) => `<option value="${s.id}">${esc(s.nome)} · ${s.duracao_min} min</option>`).join("");
     if (sessao.barbeiro_id) {
       $("enc-barbeiro").value = sessao.barbeiro_id;
+      $("pln-barbeiro").value = sessao.barbeiro_id;
       $("blq-barbeiro").value = "";
     }
   }
@@ -247,7 +254,7 @@
     return li;
   }
 
-  function abrirConcluir(li, a) {
+    function abrirConcluir(li, a) {
     if (li.querySelector(".ag__concluir")) return;
     let forma = a.forma_pagamento || null;
     const caixa = document.createElement("div");
@@ -256,20 +263,33 @@
       <label>Serviço feito<select>${SERVICOS.map((s) =>
         `<option value="${s.id}"${s.id === a.servico_id ? " selected" : ""}>${esc(s.nome)}</option>`).join("")}</select></label>
       <label>Valor cobrado<input type="number" min="0" step="0.5" value="${Number(a.preco_cobrado)}"></label>
-      <div class="ag__formas">${FORMAS.map(([v, t]) =>
+      <div class="ag__formas">${FORMAS_CONCLUIR.map(([v, t]) =>
         `<button type="button" class="ag__forma${v === forma ? " is-sel" : ""}" data-forma="${v}">${t}</button>`).join("")}</div>
       <button type="button" class="btn btn--primary">Salvar</button>`;
     caixa.querySelectorAll(".ag__forma").forEach((b) => b.addEventListener("click", () => {
       forma = b.dataset.forma;
       caixa.querySelectorAll(".ag__forma").forEach((x) => x.classList.toggle("is-sel", x === b));
+      atualizarValor();
     }));
     // trocou o serviço: o valor acompanha o preço da tabela (ainda dá para editar)
     const selServico = caixa.querySelector("select");
     const inputValor = caixa.querySelector("input");
     selServico.addEventListener("change", () => {
       const s = SERVICOS.find((x) => x.id === Number(selServico.value));
-      if (s) inputValor.value = Number(s.preco);
+      if (s && forma !== "plano") inputValor.value = Number(s.preco);
     });
+    // plano mensal: o atendimento fica com R$ 0, porque o dinheiro entrou na venda do plano
+    function atualizarValor() {
+      const plano = forma === "plano";
+      if (plano) {
+        inputValor.value = 0;
+      } else if (inputValor.disabled) {
+        const s = SERVICOS.find((x) => x.id === Number(selServico.value));
+        if (s) inputValor.value = Number(s.preco);
+      }
+      inputValor.disabled = plano;
+    }
+    atualizarValor();
     caixa.querySelector(".btn--primary").addEventListener("click", () => {
       if (!forma) return msg($("msg-agenda"), "Escolha a forma de pagamento.");
       mudarStatus(a, "concluir", {
@@ -405,6 +425,83 @@
     });
   }
 
+    /* ---------------------------------------------------------------------
+     PLANOS MENSAIS
+  --------------------------------------------------------------------- */
+  let PLANOS = [];
+
+  async function carregarPlanos() {
+    if (PLANOS.length) return;
+    try {
+      PLANOS = await api("/planos");
+    } catch (err) {
+      return msg($("msg-plano"), err.message);
+    }
+    $("pln-plano").innerHTML = PLANOS
+      .map((p) => `<option value="${p.id}">${esc(p.nome)} · ${reais(p.valor)}</option>`).join("");
+    mostrarServicosDoPlano();
+  }
+
+  function mostrarServicosDoPlano() {
+    const p = PLANOS.find((x) => x.id === Number($("pln-plano").value));
+    $("pln-servicos").textContent = p ? `Vale para: ${p.servicos.join(", ")}.` : "";
+  }
+  $("pln-plano").addEventListener("change", mostrarServicosDoPlano);
+
+  $("form-plano").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const botao = e.submitter;
+    botao.disabled = true;
+    try {
+      const r = await api("/assinaturas", {
+        metodo: "POST",
+        corpo: {
+          plano_id: Number($("pln-plano").value),
+          barbeiro_id: Number($("pln-barbeiro").value),
+          nome: $("pln-nome").value,
+          telefone: $("pln-telefone").value,
+          forma_pagamento: $("pln-forma").value,
+        },
+      });
+      msg($("msg-plano"),
+        `${r.plano} vendido para ${r.cliente} (${reais(r.valor)}). As visitas valem até ${dataBR(r.valido_ate)}.`, false);
+      $("sld-telefone").value = $("pln-telefone").value;
+      $("pln-nome").value = "";
+      $("pln-telefone").value = "";
+      consultarSaldo();
+    } catch (err) {
+      msg($("msg-plano"), err.message);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  $("form-saldo").addEventListener("submit", (e) => {
+    e.preventDefault();
+    consultarSaldo();
+  });
+
+  async function consultarSaldo() {
+    const ul = $("saldo-lista");
+    ul.innerHTML = "";
+    msg($("msg-saldo"), "", false);
+    let s;
+    try {
+      s = await api(`/assinaturas?telefone=${encodeURIComponent($("sld-telefone").value)}`);
+    } catch (err) {
+      return msg($("msg-saldo"), err.message);
+    }
+    if (!s.pagamentos.length) return msg($("msg-saldo"), "Esse cliente não tem plano válido.");
+    msg($("msg-saldo"), `${s.visitas} visita(s) disponível(is).`, false);
+    ul.innerHTML = s.pagamentos.map((p) => `
+      <li class="blq">
+        <div>
+          <p class="blq__quando">${esc(p.plano)} · ${p.restantes} visita(s) restante(s)</p>
+          <p class="blq__motivo">Com ${esc(p.barbeiro)} · pago em ${dataBR(p.pago_em)} · vale até ${dataBR(p.valido_ate)}</p>
+        </div>
+      </li>`).join("");
+  }
+
   /* ---------------------------------------------------------------------
      FATURAMENTO
   --------------------------------------------------------------------- */
@@ -428,13 +525,23 @@
         <p class="fat__valor">${reais(b.total)}</p>
         <ul class="fat__linhas">
           <li><span>Atendimentos</span><span>${b.atendimentos}</span></li>
-          <li><span>Ticket médio</span><span>${b.atendimentos ? reais(b.total / b.atendimentos) : "—"}</span></li>
+          <li><span>Pelo plano mensal</span><span>${b.visitas_plano}</span></li>
+          <li><span>Ticket médio</span><span>${ticketMedio(b)}</span></li>
           ${FORMAS.map(([v, t]) => `<li><span>${t}</span><span>${reais(b.por_forma[v])}</span></li>`).join("")}
+          <li><span>Planos vendidos</span><span>${b.planos.vendidos} · ${reais(b.planos.total)}</span></li>
+          ${Object.entries(b.planos.por_plano).map(([nome, p]) =>
+            `<li><span>${esc(nome)}</span><span>${p.quantidade} · ${reais(p.valor)}</span></li>`).join("")}
           <li><span>Faltas</span><span>${b.faltas}</span></li>
           <li><span>Cancelados</span><span>${b.cancelados}</span></li>
           <li><span>Ainda sem concluir</span><span>${b.pendentes}</span></li>
         </ul>
       </article>`).join("");
+  }
+
+  // ticket médio só dos atendimentos pagos na hora: no plano o dinheiro entra na venda
+  function ticketMedio(b) {
+    const pagos = b.atendimentos - b.visitas_plano;
+    return pagos ? reais((b.total - b.planos.total) / pagos) : "—";
   }
 
   /* ---------------------------------------------------------------------

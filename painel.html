@@ -50,6 +50,7 @@
     <nav class="painel__abas" role="tablist">
       <button class="painel__aba is-ativa" data-aba="agenda" role="tab" type="button">Agenda</button>
       <button class="painel__aba" data-aba="bloqueios" role="tab" type="button">Bloqueios</button>
+      <button class="painel__aba" data-aba="planos" role="tab" type="button">Planos</button>
       <button class="painel__aba" data-aba="faturamento" role="tab" type="button">Faturamento</button>
     </nav>
 
@@ -129,6 +130,34 @@
       <ul class="bloqueios__lista" id="bloqueios-lista"></ul>
     </div>
 
+        <!-- Planos mensais -->
+    <div class="painel__painel hidden" data-painel="planos">
+      <form class="painel__form painel__caixa" id="form-plano" novalidate>
+        <h2>Vender plano</h2>
+        <p class="painel__ajuda">Só do dia 1 ao 5 do mês. Cada pagamento libera 4 visitas, válidas por 2 meses, com o barbeiro que vendeu.</p>
+        <div class="painel__grade">
+          <div><label for="pln-plano">Plano</label><select id="pln-plano"></select></div>
+          <div><label for="pln-barbeiro">Barbeiro</label><select id="pln-barbeiro"></select></div>
+          <div><label for="pln-forma">Pagamento</label><select id="pln-forma"></select></div>
+          <div><label for="pln-nome">Nome do cliente</label><input type="text" id="pln-nome" maxlength="150"></div>
+          <div><label for="pln-telefone">WhatsApp</label><input type="tel" id="pln-telefone" placeholder="(47) 99999-9999"></div>
+        </div>
+        <p class="painel__ajuda" id="pln-servicos"></p>
+        <p class="form-msg" id="msg-plano" role="status"></p>
+        <button class="btn btn--primary" type="submit">Registrar venda</button>
+      </form>
+
+      <form class="painel__form painel__caixa" id="form-saldo" novalidate>
+        <h2>Visitas do cliente</h2>
+        <div class="painel__grade">
+          <div><label for="sld-telefone">WhatsApp</label><input type="tel" id="sld-telefone" placeholder="(47) 99999-9999"></div>
+        </div>
+        <p class="form-msg" id="msg-saldo" role="status"></p>
+        <button class="btn btn--outline" type="submit">Consultar</button>
+      </form>
+      <ul class="bloqueios__lista" id="saldo-lista"></ul>
+    </div>
+
     <!-- Faturamento -->
     <div class="painel__painel hidden" data-painel="faturamento">
       <div class="agenda__barra">
@@ -140,7 +169,7 @@
       <p class="form-msg" id="msg-faturamento" role="status"></p>
       <div class="fat__total" id="fat-total"></div>
       <div class="fat__cards" id="fat-cards"></div>
-      <p class="painel__ajuda">Só entram atendimentos marcados como <strong>concluídos</strong>, com o valor que foi cobrado.</p>
+      <p class="painel__ajuda">Entram os atendimentos marcados como <strong>concluídos</strong>, com o valor que foi cobrado, e os <strong>planos vendidos</strong> no mês (o valor inteiro para quem vendeu). O ticket médio não conta os atendimentos pelo plano.</p>
     </div>
   </section>
 </main>
