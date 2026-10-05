@@ -9,6 +9,7 @@ import {
   idValido, dataValida, horarioValido, textoValido, telefoneValido,
   buscarServico, buscarBarbeiro,
 } from "../comum.js";
+import { limiteLogin } from "../limites.js";
 
 export const rotasAdmin = Router({ mergeParams: true });
 
@@ -17,7 +18,7 @@ const FORMAS_PAGAMENTO = ["pix", "dinheiro", "debito", "credito"];
 /* ---------------------------------------------------------------------
    POST /admin/login   { email, senha }  ->  { token, nome, papel, barbeiro_id }
 --------------------------------------------------------------------- */
-rotasAdmin.post("/login", async (req, res) => {
+rotasAdmin.post("/login", limiteLogin, async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   const senha = String(req.body?.senha ?? "");
   if (!email || !senha) throw new ErroHttp(400, "Informe e-mail e senha.");

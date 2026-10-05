@@ -1,10 +1,12 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { pool } from "./db.js";
 import { rotasPublicas } from "./rotas/publicas.js";
 import { rotasAdmin } from "./rotas/admin.js";
 import { carregarBarbearia } from "./comum.js";
 import { tratarErros } from "./erros.js";
+import { limiteGeral } from "./limites.js";
 
 export const app = express();
 
@@ -13,8 +15,14 @@ const origens = (process.env.CORS_ORIGIN || "http://127.0.0.1:5500,http://localh
   .split(",")
   .map((o) => o.trim());
 
+// atrás de um proxy (Nginx no servidor), o IP real do visitante vem no cabeçalho
+// X-Forwarded-For. TRUST_PROXY=1 no .env de produção; no PC fica desligado.
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+
+app.use(helmet());                        // cabeçalhos de segurança
 app.use(cors({ origin: origens }));
-app.use(express.json());
+app.use(express.json({ limit: "10kb" })); // nenhum pedido legítimo passa disso
+app.use("/api", limiteGeral);
 
 // verificação rápida: a API está no ar e falando com o banco?
 app.get("/api/saude", async (req, res) => {

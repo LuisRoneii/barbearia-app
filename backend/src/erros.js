@@ -16,6 +16,10 @@ export function tratarErros(err, req, res, next) {
   if (err.type === "entity.parse.failed") {
     return res.status(400).json({ erro: "JSON inválido no corpo da requisição." });
   }
+  // corpo maior que o limite do express.json
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ erro: "Pedido grande demais." });
+  }
   if (err instanceof ErroHttp) {
     return res.status(err.status).json({ erro: err.message });
   }

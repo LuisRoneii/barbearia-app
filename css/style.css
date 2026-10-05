@@ -764,6 +764,7 @@ input:focus, select:focus {
   margin-bottom: 16px;
 }
 .wizard__dados .btn { margin-top: 6px; align-self: flex-start; }
+.wizard__privacidade { font-size: 0.8rem; color: var(--gray); margin: 4px 0 0; }
 .wizard__dados .btn:disabled { opacity: 0.6; cursor: wait; }
 
 .wizard__msg:empty { display: none; }

@@ -9,6 +9,7 @@ import {
   idValido, dataValida, horarioValido, textoValido, telefoneValido,
   buscarServico, buscarBarbeiro,
 } from "../comum.js";
+import { limiteAgendamento, MAX_AGENDAMENTOS_FUTUROS } from "../limites.js";
 
 const DIAS_MAX_ANTECEDENCIA = 30; // até quantos dias à frente dá para agendar
 
@@ -204,7 +205,7 @@ rotasPublicas.get("/dias", async (req, res) => {
    POST /api/:slug/agendamentos
    corpo: { barbeiro_id, servico_id, data, horario, nome, telefone }
 --------------------------------------------------------------------- */
-rotasPublicas.post("/agendamentos", async (req, res) => {
+rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   const corpo = req.body ?? {};
   const barbeiroId = idValido(corpo.barbeiro_id, "barbeiro_id");
   const servicoId = idValido(corpo.servico_id, "servico_id");
@@ -225,6 +226,19 @@ rotasPublicas.post("/agendamentos", async (req, res) => {
     const livres = await horariosDoDia(db, req.barbearia, barbeiroId, servico.duracao_min, data);
     if (!livres.includes(horario)) {
       throw new ErroHttp(409, "Horário indisponível. Escolha outro.");
+    }
+
+    // o mesmo WhatsApp não acumula horários: evita lotarem a agenda com reservas falsas
+    const { rows: [{ futuros }] } = await db.query(
+      `SELECT count(*)::int AS futuros FROM agendamentos
+        WHERE barbearia_id = $1 AND cliente_telefone = $2
+          AND status = 'confirmado' AND inicio > now()`,
+      [req.barbearia.id, telefone]
+    );
+    if (futuros >= MAX_AGENDAMENTOS_FUTUROS) {
+      throw new ErroHttp(409,
+        `Este WhatsApp já tem ${futuros} horários marcados. ` +
+        "Para marcar outro, chame a barbearia no WhatsApp.");
     }
 
     // cliente identificado pelo WhatsApp: cria ou atualiza o nome
