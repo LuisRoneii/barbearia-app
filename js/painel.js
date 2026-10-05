@@ -131,7 +131,9 @@
   /* ---------------------------------------------------------------------
      Abas
   --------------------------------------------------------------------- */
-  const carregarAba = { agenda: carregarAgenda, bloqueios: carregarBloqueios, faturamento: carregarFaturamento };
+  const carregarAba = {
+    agenda: carregarAgenda, bloqueios: carregarBloqueios, planos: carregarPlanos, faturamento: carregarFaturamento,
+  };
 
   document.querySelectorAll(".painel__aba").forEach((aba) => {
     aba.addEventListener("click", () => {
@@ -158,10 +160,13 @@
     $("agenda-barbeiro").innerHTML = `<option value="">Todos os barbeiros</option>${opcoesBarbeiros}`;
     $("enc-barbeiro").innerHTML = opcoesBarbeiros;
     $("blq-barbeiro").innerHTML = `<option value="">Barbearia toda</option>${opcoesBarbeiros}`;
+    $("pln-barbeiro").innerHTML = opcoesBarbeiros;
+    $("pln-forma").innerHTML = FORMAS.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
     $("enc-servico").innerHTML = SERVICOS
       .map((s) => `<option value="${s.id}">${esc(s.nome)} · ${s.duracao_min} min</option>`).join("");
     if (sessao.barbeiro_id) {
       $("enc-barbeiro").value = sessao.barbeiro_id;
+      $("pln-barbeiro").value = sessao.barbeiro_id;
       $("blq-barbeiro").value = "";
     }
   }
@@ -418,6 +423,83 @@
       });
       ul.appendChild(li);
     });
+  }
+
+    /* ---------------------------------------------------------------------
+     PLANOS MENSAIS
+  --------------------------------------------------------------------- */
+  let PLANOS = [];
+
+  async function carregarPlanos() {
+    if (PLANOS.length) return;
+    try {
+      PLANOS = await api("/planos");
+    } catch (err) {
+      return msg($("msg-plano"), err.message);
+    }
+    $("pln-plano").innerHTML = PLANOS
+      .map((p) => `<option value="${p.id}">${esc(p.nome)} · ${reais(p.valor)}</option>`).join("");
+    mostrarServicosDoPlano();
+  }
+
+  function mostrarServicosDoPlano() {
+    const p = PLANOS.find((x) => x.id === Number($("pln-plano").value));
+    $("pln-servicos").textContent = p ? `Vale para: ${p.servicos.join(", ")}.` : "";
+  }
+  $("pln-plano").addEventListener("change", mostrarServicosDoPlano);
+
+  $("form-plano").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const botao = e.submitter;
+    botao.disabled = true;
+    try {
+      const r = await api("/assinaturas", {
+        metodo: "POST",
+        corpo: {
+          plano_id: Number($("pln-plano").value),
+          barbeiro_id: Number($("pln-barbeiro").value),
+          nome: $("pln-nome").value,
+          telefone: $("pln-telefone").value,
+          forma_pagamento: $("pln-forma").value,
+        },
+      });
+      msg($("msg-plano"),
+        `${r.plano} vendido para ${r.cliente} (${reais(r.valor)}). As visitas valem até ${dataBR(r.valido_ate)}.`, false);
+      $("sld-telefone").value = $("pln-telefone").value;
+      $("pln-nome").value = "";
+      $("pln-telefone").value = "";
+      consultarSaldo();
+    } catch (err) {
+      msg($("msg-plano"), err.message);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  $("form-saldo").addEventListener("submit", (e) => {
+    e.preventDefault();
+    consultarSaldo();
+  });
+
+  async function consultarSaldo() {
+    const ul = $("saldo-lista");
+    ul.innerHTML = "";
+    msg($("msg-saldo"), "", false);
+    let s;
+    try {
+      s = await api(`/assinaturas?telefone=${encodeURIComponent($("sld-telefone").value)}`);
+    } catch (err) {
+      return msg($("msg-saldo"), err.message);
+    }
+    if (!s.pagamentos.length) return msg($("msg-saldo"), "Esse cliente não tem plano válido.");
+    msg($("msg-saldo"), `${s.visitas} visita(s) disponível(is).`, false);
+    ul.innerHTML = s.pagamentos.map((p) => `
+      <li class="blq">
+        <div>
+          <p class="blq__quando">${esc(p.plano)} · ${p.restantes} visita(s) restante(s)</p>
+          <p class="blq__motivo">Com ${esc(p.barbeiro)} · pago em ${dataBR(p.pago_em)} · vale até ${dataBR(p.valido_ate)}</p>
+        </div>
+      </li>`).join("");
   }
 
   /* ---------------------------------------------------------------------
