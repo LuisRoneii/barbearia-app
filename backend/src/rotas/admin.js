@@ -313,6 +313,113 @@ rotasAdmin.delete("/bloqueios/:id", async (req, res) => {
 });
 
 /* ---------------------------------------------------------------------
+   Planos mensais (#19)
+--------------------------------------------------------------------- */
+
+// GET /admin/planos  -> planos à venda e em quais serviços cada um vale
+rotasAdmin.get("/planos", async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT p.id, p.nome, p.valor, p.visitas_por_pagamento, p.validade_meses,
+            array_agg(s.nome ORDER BY s.id) AS servicos
+       FROM planos p
+       JOIN plano_servicos ps ON ps.plano_id = p.id
+       JOIN servicos s        ON s.id = ps.servico_id
+      WHERE p.barbearia_id = $1 AND p.ativo
+      GROUP BY p.id
+      ORDER BY p.valor`,
+    [req.barbearia.id]
+  );
+  res.json(rows);
+});
+
+// POST /admin/assinaturas  { plano_id, barbeiro_id, nome, telefone, forma_pagamento }
+// vende o plano hoje (só do dia 1 ao 5); cria o cliente se ele ainda não existe
+rotasAdmin.post("/assinaturas", async (req, res) => {
+  const corpo = req.body ?? {};
+  const planoId = idValido(corpo.plano_id, "plano_id");
+  const barbeiroId = idValido(corpo.barbeiro_id, "barbeiro_id");
+  const nome = textoValido(corpo.nome, "nome", 2, 150);
+  const telefone = telefoneValido(corpo.telefone);
+  const forma = String(corpo.forma_pagamento ?? "");
+  if (!FORMAS_PAGAMENTO.includes(forma)) {
+    throw new ErroHttp(400, `Campo "forma_pagamento" deve ser: ${FORMAS_PAGAMENTO.join(", ")}.`);
+  }
+
+  const soBarbeiro = filtroBarbeiro(req);
+  if (soBarbeiro && soBarbeiro !== barbeiroId) {
+    throw new ErroHttp(403, "Você só pode vender plano seu.");
+  }
+  await buscarBarbeiro(pool, req.barbearia.id, barbeiroId);
+
+  const { rows: [plano] } = await pool.query(
+    "SELECT id, nome, valor, validade_meses FROM planos WHERE id = $1 AND barbearia_id = $2 AND ativo",
+    [planoId, req.barbearia.id]
+  );
+  if (!plano) throw new ErroHttp(404, "Plano não encontrado.");
+
+  const { rows: [cliente] } = await pool.query(
+    `INSERT INTO clientes (barbearia_id, nome, telefone) VALUES ($1, $2, $3)
+     ON CONFLICT (barbearia_id, telefone) DO UPDATE SET nome = EXCLUDED.nome
+     RETURNING id`,
+    [req.barbearia.id, nome, telefone]
+  );
+
+  // "hoje" é no fuso da barbearia, não no do servidor
+  const fuso = req.barbearia.fuso_horario;
+  const { rows: [jaPagou] } = await pool.query(
+    `SELECT 1 FROM assinaturas
+      WHERE barbearia_id = $1 AND cliente_id = $2
+        AND date_trunc('month', pago_em) = date_trunc('month', (now() AT TIME ZONE $3)::date)`,
+    [req.barbearia.id, cliente.id, fuso]
+  );
+  if (jaPagou) throw new ErroHttp(409, "Esse cliente já pagou o plano deste mês.");
+
+  const { rows: [nova] } = await pool.query(
+    `INSERT INTO assinaturas
+       (barbearia_id, cliente_id, barbeiro_id, plano_id, pago_em, valor, forma_pagamento, valido_ate)
+     VALUES ($1, $2, $3, $4, (now() AT TIME ZONE $7)::date, $5, $6,
+             ((now() AT TIME ZONE $7)::date + make_interval(months => $8))::date)
+     RETURNING id, to_char(pago_em, 'YYYY-MM-DD') AS pago_em, to_char(valido_ate, 'YYYY-MM-DD') AS valido_ate`,
+    [req.barbearia.id, cliente.id, barbeiroId, plano.id, plano.valor, forma, fuso, plano.validade_meses]
+  ).catch((err) => {
+    // a regra "só do dia 1 ao 5" está no próprio banco (CHECK da tabela assinaturas)
+    if (err.constraint === "assinaturas_pago_em_check") {
+      throw new ErroHttp(409, "O plano só pode ser vendido do dia 1 ao dia 5 do mês.");
+    }
+    throw err;
+  });
+
+  res.status(201).json({ id: nova.id, cliente: nome, plano: plano.nome, valor: plano.valor,
+    pago_em: nova.pago_em, valido_ate: nova.valido_ate });
+});
+
+// GET /admin/assinaturas?telefone=41999999999
+// -> saldo do cliente: pagamentos ainda válidos e quantas visitas sobram em cada um
+rotasAdmin.get("/assinaturas", async (req, res) => {
+  const telefone = telefoneValido(req.query.telefone);
+  const { rows } = await pool.query(
+    `SELECT a.id, p.nome AS plano, a.barbeiro_id, b.nome AS barbeiro,
+            to_char(a.pago_em, 'YYYY-MM-DD')    AS pago_em,
+            to_char(a.valido_ate, 'YYYY-MM-DD') AS valido_ate,
+            p.visitas_por_pagamento - COUNT(ag.id) AS restantes
+       FROM assinaturas a
+       JOIN clientes c       ON c.id = a.cliente_id
+       JOIN planos p         ON p.id = a.plano_id
+       JOIN barbeiros b      ON b.id = a.barbeiro_id
+       LEFT JOIN agendamentos ag ON ag.assinatura_id = a.id AND ag.status = 'concluido'
+      WHERE a.barbearia_id = $1 AND c.telefone = $2
+        AND a.valido_ate >= (now() AT TIME ZONE $3)::date
+        AND ($4::int IS NULL OR a.barbeiro_id = $4)
+      GROUP BY a.id, p.nome, p.visitas_por_pagamento, b.nome
+      ORDER BY a.pago_em`,
+    [req.barbearia.id, telefone, req.barbearia.fuso_horario, filtroBarbeiro(req)]
+  );
+  const pagamentos = rows.map((r) => ({ ...r, restantes: Number(r.restantes) }));
+  const visitas = pagamentos.reduce((soma, p) => soma + p.restantes, 0);
+  res.json({ telefone, visitas, pagamentos });
+});
+
+/* ---------------------------------------------------------------------
    GET /admin/faturamento?mes=2026-10
    -> { mes, barbeiros: [{ barbeiro, atendimentos, total, por_forma, faltas, cancelados }], total }
 --------------------------------------------------------------------- */
