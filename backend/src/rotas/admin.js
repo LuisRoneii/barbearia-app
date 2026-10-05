@@ -484,6 +484,7 @@ rotasAdmin.get("/faturamento", async (req, res) => {
             COALESCE(SUM(a.preco_cobrado) FILTER (WHERE a.status = 'concluido' AND a.forma_pagamento = 'dinheiro'), 0) AS dinheiro,
             COALESCE(SUM(a.preco_cobrado) FILTER (WHERE a.status = 'concluido' AND a.forma_pagamento = 'debito'), 0)   AS debito,
             COALESCE(SUM(a.preco_cobrado) FILTER (WHERE a.status = 'concluido' AND a.forma_pagamento = 'credito'), 0)  AS credito,
+            COUNT(a.id) FILTER (WHERE a.status = 'concluido' AND a.forma_pagamento = 'plano')   AS visitas_plano,
             COUNT(a.id) FILTER (WHERE a.status = 'nao_compareceu')                          AS faltas,
             COUNT(a.id) FILTER (WHERE a.status = 'cancelado')                               AS cancelados,
             COUNT(a.id) FILTER (WHERE a.status = 'confirmado')                              AS pendentes
@@ -498,16 +499,44 @@ rotasAdmin.get("/faturamento", async (req, res) => {
     [req.barbearia.id, mes, fuso, soBarbeiro]
   );
 
-  const barbeiros = rows.map((r) => ({
-    barbeiro_id: r.barbeiro_id,
-    barbeiro: r.barbeiro,
-    atendimentos: Number(r.atendimentos),
-    total: r.total,
-    por_forma: { pix: r.pix, dinheiro: r.dinheiro, debito: r.debito, credito: r.credito },
-    faltas: Number(r.faltas),
-    cancelados: Number(r.cancelados),
-    pendentes: Number(r.pendentes),
-  }));
+  // planos vendidos no mês: o valor inteiro entra para quem vendeu, no dia da venda
+  const { rows: vendas } = await pool.query(
+    `SELECT a.barbeiro_id, p.nome AS plano, a.forma_pagamento,
+            COUNT(*)::int AS quantidade, SUM(a.valor) AS valor
+       FROM assinaturas a
+       JOIN planos p ON p.id = a.plano_id
+      WHERE a.barbearia_id = $1
+        AND a.pago_em >= ($2 || '-01')::date
+        AND a.pago_em <  ($2 || '-01')::date + interval '1 month'
+        AND ($3::int IS NULL OR a.barbeiro_id = $3)
+      GROUP BY a.barbeiro_id, p.nome, a.forma_pagamento`,
+    [req.barbearia.id, mes, soBarbeiro]
+  );
+
+  const barbeiros = rows.map((r) => {
+    const b = {
+      barbeiro_id: r.barbeiro_id,
+      barbeiro: r.barbeiro,
+      atendimentos: Number(r.atendimentos),
+      total: r.total,
+      por_forma: { pix: r.pix, dinheiro: r.dinheiro, debito: r.debito, credito: r.credito },
+      visitas_plano: Number(r.visitas_plano),
+      planos: { vendidos: 0, total: 0, por_plano: {} },
+      faltas: Number(r.faltas),
+      cancelados: Number(r.cancelados),
+      pendentes: Number(r.pendentes),
+    };
+    for (const v of vendas.filter((v) => v.barbeiro_id === r.barbeiro_id)) {
+      const item = (b.planos.por_plano[v.plano] ??= { quantidade: 0, valor: 0 });
+      item.quantidade += v.quantidade;
+      item.valor += v.valor;
+      b.planos.vendidos += v.quantidade;
+      b.planos.total += v.valor;
+      b.por_forma[v.forma_pagamento] += v.valor;
+      b.total += v.valor;
+    }
+    return b;
+  });
   const total = barbeiros.reduce((soma, b) => soma + b.total, 0);
 
   res.json({ mes, barbeiros, total });
