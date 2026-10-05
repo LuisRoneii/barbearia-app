@@ -15,6 +15,9 @@ export const rotasAdmin = Router({ mergeParams: true });
 
 const FORMAS_PAGAMENTO = ["pix", "dinheiro", "debito", "credito"];
 
+// ao concluir também vale "plano": desconta 1 visita do plano mensal e cobra R$ 0
+const FORMAS_CONCLUIR = [...FORMAS_PAGAMENTO, "plano"];
+
 /* ---------------------------------------------------------------------
    POST /admin/login   { email, senha }  ->  { token, nome, papel, barbeiro_id }
 --------------------------------------------------------------------- */
@@ -113,8 +116,10 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
   if (!regra) throw new ErroHttp(400, 'Campo "acao" inválido.');
 
   const { rows: [atual] } = await pool.query(
-    "SELECT id, status, barbeiro_id, servico_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2",
-    [id, req.barbearia.id]
+    `SELECT id, status, barbeiro_id, servico_id, cliente_id,
+            to_char(inicio AT TIME ZONE $3, 'YYYY-MM-DD') AS dia
+       FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
+    [id, req.barbearia.id, req.barbearia.fuso_horario]
   );
   const soBarbeiro = filtroBarbeiro(req);
   if (!atual || (soBarbeiro && atual.barbeiro_id !== soBarbeiro)) {
@@ -127,13 +132,14 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
   let preco = null;
   let forma = null;
   if (acao === "concluir") {
-    preco = Number(req.body?.preco_cobrado);
+    forma = String(req.body?.forma_pagamento ?? "");
+    if (!FORMAS_CONCLUIR.includes(forma)) {
+      throw new ErroHttp(400, `Campo "forma_pagamento" deve ser: ${FORMAS_CONCLUIR.join(", ")}.`);
+    }
+    // no plano o dinheiro já entrou na venda: o atendimento fica com R$ 0
+    preco = forma === "plano" ? 0 : Number(req.body?.preco_cobrado);
     if (!Number.isFinite(preco) || preco < 0 || preco > 10000) {
       throw new ErroHttp(400, 'Campo "preco_cobrado" inválido.');
-    }
-    forma = String(req.body?.forma_pagamento ?? "");
-    if (!FORMAS_PAGAMENTO.includes(forma)) {
-      throw new ErroHttp(400, `Campo "forma_pagamento" deve ser: ${FORMAS_PAGAMENTO.join(", ")}.`);
     }
   }
 
@@ -146,6 +152,12 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
     }
   }
 
+  // pagamento com plano: escolhe de qual pagamento sai a visita
+  let assinaturaId = null;
+  if (forma === "plano") {
+    assinaturaId = await escolherAssinatura(req.barbearia.id, atual, servico?.id ?? atual.servico_id);
+  }
+
   // reabrir um cancelado pode esbarrar em outro agendamento que ocupou o horário:
   // a constraint do banco recusa e o tratarErros devolve 409
   let atualizado;
@@ -155,12 +167,13 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
           SET status = $1::varchar,
               preco_cobrado   = COALESCE($2::numeric, preco_cobrado),
               forma_pagamento = CASE WHEN $1::varchar = 'concluido' THEN $3::varchar ELSE NULL END,
+              assinatura_id   = CASE WHEN $1::varchar = 'concluido' THEN $7::int ELSE NULL END,
               servico_id      = COALESCE($5::int, servico_id),
               fim             = CASE WHEN $6::int IS NULL THEN fim
                                      ELSE inicio + make_interval(mins => $6::int) END
         WHERE id = $4
-        RETURNING id, status, preco_cobrado, forma_pagamento, servico_id`,
-      [regra.para, preco, forma, id, servico?.id ?? null, servico?.duracao_min ?? null]
+        RETURNING id, status, preco_cobrado, forma_pagamento, servico_id, assinatura_id`,
+      [regra.para, preco, forma, id, servico?.id ?? null, servico?.duracao_min ?? null, assinaturaId]
     ));
   } catch (err) {
     // serviço mais longo que invade o horário do próximo cliente do mesmo barbeiro
@@ -173,6 +186,34 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
   }
   res.json(atualizado);
 });
+
+// Pagamento de plano mais antigo que ainda tem visita e vale para este atendimento:
+// mesmo cliente, mesmo barbeiro, dentro da validade e com o serviço incluído no plano.
+async function escolherAssinatura(barbeariaId, agendamento, servicoId) {
+  if (!agendamento.cliente_id) {
+    throw new ErroHttp(409, "Atendimento sem cliente cadastrado (encaixe sem WhatsApp) não pode usar plano.");
+  }
+  const { rows: [assinatura] } = await pool.query(
+    `SELECT a.id
+       FROM assinaturas a
+       JOIN planos p          ON p.id = a.plano_id
+       JOIN plano_servicos ps ON ps.plano_id = a.plano_id AND ps.servico_id = $4
+      WHERE a.barbearia_id = $1 AND a.cliente_id = $2 AND a.barbeiro_id = $3
+        AND $5::date BETWEEN a.pago_em AND a.valido_ate
+        AND (SELECT COUNT(*) FROM agendamentos ag
+              WHERE ag.assinatura_id = a.id AND ag.status = 'concluido'
+                AND ag.id <> $6) < p.visitas_por_pagamento
+      ORDER BY a.pago_em
+      LIMIT 1`,
+    [barbeariaId, agendamento.cliente_id, agendamento.barbeiro_id, servicoId,
+      agendamento.dia, agendamento.id]
+  );
+  if (!assinatura) {
+    throw new ErroHttp(409,
+      "Esse cliente não tem visita de plano válida com este barbeiro para este serviço.");
+  }
+  return assinatura.id;
+}
 
 /* ---------------------------------------------------------------------
    POST /admin/encaixe
