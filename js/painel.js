@@ -239,7 +239,7 @@
         }
       });
     } else if (a.status === "concluido") {
-      botao("Editar valor", "btn--outline", () => abrirConcluir(li, a));
+      botao("Editar", "btn--outline", () => abrirConcluir(li, a));
       botao("Desfazer", "btn--ghost", () => mudarStatus(a, "reabrir"));
     } else {
       botao("Desfazer", "btn--ghost", () => mudarStatus(a, "reabrir"));
@@ -253,6 +253,8 @@
     const caixa = document.createElement("div");
     caixa.className = "ag__concluir";
     caixa.innerHTML = `
+      <label>Serviço feito<select>${SERVICOS.map((s) =>
+        `<option value="${s.id}"${s.id === a.servico_id ? " selected" : ""}>${esc(s.nome)}</option>`).join("")}</select></label>
       <label>Valor cobrado<input type="number" min="0" step="0.5" value="${Number(a.preco_cobrado)}"></label>
       <div class="ag__formas">${FORMAS.map(([v, t]) =>
         `<button type="button" class="ag__forma${v === forma ? " is-sel" : ""}" data-forma="${v}">${t}</button>`).join("")}</div>
@@ -261,10 +263,18 @@
       forma = b.dataset.forma;
       caixa.querySelectorAll(".ag__forma").forEach((x) => x.classList.toggle("is-sel", x === b));
     }));
+    // trocou o serviço: o valor acompanha o preço da tabela (ainda dá para editar)
+    const selServico = caixa.querySelector("select");
+    const inputValor = caixa.querySelector("input");
+    selServico.addEventListener("change", () => {
+      const s = SERVICOS.find((x) => x.id === Number(selServico.value));
+      if (s) inputValor.value = Number(s.preco);
+    });
     caixa.querySelector(".btn--primary").addEventListener("click", () => {
       if (!forma) return msg($("msg-agenda"), "Escolha a forma de pagamento.");
       mudarStatus(a, "concluir", {
-        preco_cobrado: Number(caixa.querySelector("input").value),
+        servico_id: Number(selServico.value),
+        preco_cobrado: Number(inputValor.value),
         forma_pagamento: forma,
       });
     });

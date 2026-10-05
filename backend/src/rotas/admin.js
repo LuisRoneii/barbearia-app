@@ -95,7 +95,8 @@ rotasAdmin.get("/agenda", async (req, res) => {
 /* ---------------------------------------------------------------------
    PATCH /admin/agendamentos/:id
    { acao: "cancelar" | "nao_compareceu" | "reabrir" }
-   { acao: "concluir", preco_cobrado: 30, forma_pagamento: "pix" }
+   { acao: "concluir", preco_cobrado: 30, forma_pagamento: "pix", servico_id?: 3 }
+   servico_id é opcional: troca o serviço quando o cliente muda de ideia na cadeira.
 --------------------------------------------------------------------- */
 const TRANSICOES = {
   cancelar: { de: ["confirmado"], para: "cancelado" },
@@ -111,7 +112,7 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
   if (!regra) throw new ErroHttp(400, 'Campo "acao" inválido.');
 
   const { rows: [atual] } = await pool.query(
-    "SELECT id, status, barbeiro_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2",
+    "SELECT id, status, barbeiro_id, servico_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2",
     [id, req.barbearia.id]
   );
   const soBarbeiro = filtroBarbeiro(req);
@@ -135,17 +136,40 @@ rotasAdmin.patch("/agendamentos/:id", async (req, res) => {
     }
   }
 
+  // troca de serviço: o início não muda, o fim é recalculado pela nova duração
+  let servico = null;
+  if (acao === "concluir" && req.body?.servico_id != null) {
+    const servicoId = idValido(req.body.servico_id, "servico_id");
+    if (servicoId !== atual.servico_id) {
+      servico = await buscarServico(pool, req.barbearia.id, servicoId);
+    }
+  }
+
   // reabrir um cancelado pode esbarrar em outro agendamento que ocupou o horário:
   // a constraint do banco recusa e o tratarErros devolve 409
-  const { rows: [atualizado] } = await pool.query(
-    `UPDATE agendamentos
-        SET status = $1::varchar,
-            preco_cobrado   = COALESCE($2::numeric, preco_cobrado),
-            forma_pagamento = CASE WHEN $1::varchar = 'concluido' THEN $3::varchar ELSE NULL END
-      WHERE id = $4
-      RETURNING id, status, preco_cobrado, forma_pagamento`,
-    [regra.para, preco, forma, id]
-  );
+  let atualizado;
+  try {
+    ({ rows: [atualizado] } = await pool.query(
+      `UPDATE agendamentos
+          SET status = $1::varchar,
+              preco_cobrado   = COALESCE($2::numeric, preco_cobrado),
+              forma_pagamento = CASE WHEN $1::varchar = 'concluido' THEN $3::varchar ELSE NULL END,
+              servico_id      = COALESCE($5::int, servico_id),
+              fim             = CASE WHEN $6::int IS NULL THEN fim
+                                     ELSE inicio + make_interval(mins => $6::int) END
+        WHERE id = $4
+        RETURNING id, status, preco_cobrado, forma_pagamento, servico_id`,
+      [regra.para, preco, forma, id, servico?.id ?? null, servico?.duracao_min ?? null]
+    ));
+  } catch (err) {
+    // serviço mais longo que invade o horário do próximo cliente do mesmo barbeiro
+    if (err.code === "23P01" && servico) {
+      throw new ErroHttp(409,
+        `"${servico.nome}" (${servico.duracao_min} min) não cabe: bate com o próximo cliente. ` +
+        "Mantenha o serviço marcado e ajuste só o valor.");
+    }
+    throw err;
+  }
   res.json(atualizado);
 });
 
