@@ -119,3 +119,10 @@ backend/
 - Cancelamento pelo cliente (depende de decidir se o cliente terá conta)
 - Confirmação via WhatsApp (#17)
 - Trocar o `localStorage` do site pelas chamadas desta API (#5)
+
+## Segurança
+
+- **Limites de uso** (`src/limites.js`): 10 tentativas de login erradas a cada 15 min, 10 pedidos de agendamento por hora e 120 requisições por minuto, sempre por IP. Passou disso, a API responde `429`.
+- **Limite por WhatsApp:** o mesmo número pode ter no máximo 3 horários futuros marcados pelo site. Encaixes lançados pelo painel não entram nessa conta.
+- **Cabeçalhos de segurança** com o pacote `helmet` e corpo das requisições limitado a 10 kB.
+- **No servidor**, atrás do Nginx, defina `TRUST_PROXY=1` no `.env`. Sem isso a API enxerga todos os visitantes com o IP do proxy e os limites valem para todo mundo junto.
