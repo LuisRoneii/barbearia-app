@@ -16,6 +16,57 @@ const DIAS_MAX_ANTECEDENCIA = 30; // até quantos dias à frente dá para agenda
 
 export const rotasPublicas = Router({ mergeParams: true });
 
+/* ---------------------------------------------------------------------
+   Código secreto do agendamento (#25)
+   Quem agenda recebe um código aleatório. Só com ele dá para ver,
+   cancelar ou remarcar o horário: o id sozinho não basta.
+--------------------------------------------------------------------- */
+function codigoValido(valor) {
+  const codigo = String(valor ?? "");
+  // mesma resposta de "não existe": não entrega se o id existe ou não
+  if (!/^[a-f0-9]{32}$/.test(codigo)) throw new ErroHttp(404, "Agendamento não encontrado.");
+  return codigo;
+}
+
+// agendamento do cliente, conferindo id + código. Já diz se ainda dá para cancelar.
+async function buscarDoCliente(db, barbearia, id, codigo) {
+  const { rows: [ag] } = await db.query(
+    `SELECT a.id, a.status, a.servico_id, s.nome AS servico, a.barbeiro_id, b.nome AS barbeiro,
+            b.telefone AS barbeiro_telefone, a.preco_cobrado AS preco,
+            to_char(a.inicio AT TIME ZONE $4, 'YYYY-MM-DD') AS data,
+            to_char(a.inicio AT TIME ZONE $4, 'HH24:MI')    AS horario,
+            ba.antecedencia_cancelamento_horas             AS antecedencia_horas,
+            (a.status = 'confirmado'
+              AND a.inicio - make_interval(hours => ba.antecedencia_cancelamento_horas) > now()) AS pode_cancelar
+       FROM agendamentos a
+       JOIN servicos s    ON s.id = a.servico_id
+       JOIN barbeiros b   ON b.id = a.barbeiro_id
+       JOIN barbearias ba ON ba.id = a.barbearia_id
+      WHERE a.id = $1 AND a.barbearia_id = $2 AND a.codigo = $3`,
+    [id, barbearia.id, codigo, barbearia.fuso_horario]
+  );
+  if (!ag) throw new ErroHttp(404, "Agendamento não encontrado.");
+  return ag;
+}
+
+// cancela pelo cliente: só confirmado e até X horas antes (regra da barbearia)
+async function cancelarDoCliente(db, barbearia, id, codigo) {
+  const ag = await buscarDoCliente(db, barbearia, id, codigo);
+  if (ag.status !== "confirmado") {
+    throw new ErroHttp(409, "Esse horário não está mais confirmado.");
+  }
+  if (!ag.pode_cancelar) {
+    throw new ErroHttp(409,
+      `Só dá para cancelar ou remarcar até ${ag.antecedencia_horas} horas antes. ` +
+      "Chame o seu barbeiro no WhatsApp.");
+  }
+  await db.query(
+    "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1 AND status = 'confirmado'",
+    [ag.id]
+  );
+  return ag;
+}
+
 /**
  * Horários livres de um barbeiro num dia, para um serviço de `duracao` minutos.
  * Junta: expediente do dia + agendamentos + bloqueios (feriado, folga).
@@ -290,4 +341,24 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   } finally {
     db.release();
   }
+});
+
+/* ---------------------------------------------------------------------
+   GET /api/:slug/agendamentos/:id?codigo=...
+   -> o agendamento, com o status atual e se ainda dá para cancelar
+--------------------------------------------------------------------- */
+rotasPublicas.get("/agendamentos/:id", async (req, res) => {
+  const id = idValido(req.params.id, "id");
+  const codigo = codigoValido(req.query.codigo);
+  res.json(await buscarDoCliente(pool, req.barbearia, id, codigo));
+});
+
+/* ---------------------------------------------------------------------
+   POST /api/:slug/agendamentos/:id/cancelar   { codigo }
+--------------------------------------------------------------------- */
+rotasPublicas.post("/agendamentos/:id/cancelar", async (req, res) => {
+  const id = idValido(req.params.id, "id");
+  const codigo = codigoValido(req.body?.codigo);
+  await cancelarDoCliente(pool, req.barbearia, id, codigo);
+  res.json({ id, status: "cancelado" });
 });
