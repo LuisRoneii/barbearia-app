@@ -2,6 +2,7 @@
 // Todas ficam sob /api/:slug, ex: /api/zt-barber/servicos
 
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
 import { pool } from "../db.js";
 import { ErroHttp } from "../erros.js";
 import { calcularHorariosLivres, paraMinutos } from "../agenda.js";
@@ -213,6 +214,7 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   const horario = horarioValido(corpo.horario);
   const nome = textoValido(corpo.nome, "nome", 2, 150);
   const telefone = telefoneValido(corpo.telefone);
+  const codigo = randomBytes(16).toString("hex"); // 32 letras/números aleatórios
 
   const db = await pool.connect();
   try {
@@ -253,17 +255,17 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
     const { rows: [agendamento] } = await db.query(
       `INSERT INTO agendamentos
          (barbearia_id, cliente_id, cliente_nome, cliente_telefone,
-          barbeiro_id, servico_id, inicio, fim, preco_cobrado, origem)
+          barbeiro_id, servico_id, inicio, fim, preco_cobrado, origem, codigo)
        VALUES ($1, $2, $3, $4, $5, $6,
                ($7::date + $8::time) AT TIME ZONE $9,
                ($7::date + $8::time) AT TIME ZONE $9 + make_interval(mins => $10),
-               $11, 'site')
+                $11, 'site', $12)
        RETURNING id, status`,
       [
         req.barbearia.id, cliente.id, nome, telefone,
         barbeiroId, servicoId,
         data, horario, req.barbearia.fuso_horario, servico.duracao_min,
-        servico.preco,
+        servico.preco, codigo
       ]
     );
 
@@ -271,8 +273,11 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
 
     res.status(201).json({
       id: agendamento.id,
+      codigo,
       status: agendamento.status,
+      barbeiro_id: barbeiroId,
       barbeiro: barbeiro.nome,
+      servico_id: servicoId,
       servico: servico.nome,
       data,
       horario,
