@@ -179,6 +179,7 @@ CREATE TABLE agendamentos (
                     CHECK (status IN ('confirmado', 'concluido', 'cancelado', 'nao_compareceu')),
   origem            VARCHAR(20) NOT NULL DEFAULT 'site'
                     CHECK (origem IN ('site', 'encaixe', 'painel')),
+  codigo            VARCHAR(64) UNIQUE,    -- código secreto do cliente (site); nulo em encaixe
   observacao        VARCHAR(255),
   criado_em         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (fim > inicio),

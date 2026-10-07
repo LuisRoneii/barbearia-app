@@ -110,6 +110,7 @@ erDiagram
         int assinatura_id FK
         string status
         string origem
+        string codigo
     }
 
     PLANOS {
@@ -252,6 +253,7 @@ atualizada uma vez por ano.
 | assinatura_id | FK, nulo | de qual pagamento de plano saiu a visita; volta a nulo ao desfazer ou cancelar |
 | status | `confirmado` \| `concluido` \| `cancelado` \| `nao_compareceu` | |
 | origem | `site` \| `encaixe` \| `painel` | |
+| codigo | varchar(64) unique, nulo | código secreto entregue a quem agendou pelo site; com ele o cliente vê, cancela e remarca. Nulo em encaixe e em agendamentos antigos |
 | observacao | varchar | |
 
 
