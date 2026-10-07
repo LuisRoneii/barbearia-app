@@ -265,11 +265,19 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   const horario = horarioValido(corpo.horario);
   const nome = textoValido(corpo.nome, "nome", 2, 150);
   const telefone = telefoneValido(corpo.telefone);
+  // remarcar (opcional): { id, codigo } do horário antigo
+  const remarcar = corpo.remarcar
+    ? { id: idValido(corpo.remarcar.id, "remarcar.id"), codigo: codigoValido(corpo.remarcar.codigo) }
+    : null;
   const codigo = randomBytes(16).toString("hex"); // 32 letras/números aleatórios
 
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
+
+    // remarcar: cancela o horário antigo dentro da MESMA transação.
+    // Se o novo der errado, o ROLLBACK lá embaixo desfaz o cancelamento.
+    if (remarcar) await cancelarDoCliente(db, req.barbearia, remarcar.id, remarcar.codigo);
 
     const barbeiro = await buscarBarbeiro(db, req.barbearia.id, barbeiroId);
     const servico = await buscarServico(db, req.barbearia.id, servicoId);
