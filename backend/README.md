@@ -32,7 +32,9 @@ Todas as rotas usam o `slug` da barbearia: `zt-barber`.
 | GET | `/api/zt-barber/barbeiros` | barbeiros ativos |
 | GET | `/api/zt-barber/dias?barbeiro_id=1&servico_id=1&quantidade=14` | próximos dias: aberto, lotado, fechado ou bloqueado (feriado) |
 | GET | `/api/zt-barber/horarios?barbeiro_id=1&servico_id=1&data=2026-09-29` | horários livres do dia |
-| POST | `/api/zt-barber/agendamentos` | cria um agendamento |
+| POST | `/api/zt-barber/agendamentos` | cria um agendamento e devolve o `codigo` secreto; com `remarcar: { id, codigo }` cancela o horário antigo na mesma transação |
+| GET | `/api/zt-barber/agendamentos/:id?codigo=...` | o agendamento do cliente (status, serviço, barbeiro, data, horário, valor e se ainda dá para cancelar) |
+| POST | `/api/zt-barber/agendamentos/:id/cancelar` | `{ codigo }` cancela, só até 3 horas antes |
 
 ### Painel dos donos (exige login)
 

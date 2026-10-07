@@ -2,6 +2,7 @@
 // Todas ficam sob /api/:slug, ex: /api/zt-barber/servicos
 
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
 import { pool } from "../db.js";
 import { ErroHttp } from "../erros.js";
 import { calcularHorariosLivres, paraMinutos } from "../agenda.js";
@@ -14,6 +15,57 @@ import { limiteAgendamento, MAX_AGENDAMENTOS_FUTUROS } from "../limites.js";
 const DIAS_MAX_ANTECEDENCIA = 30; // até quantos dias à frente dá para agendar
 
 export const rotasPublicas = Router({ mergeParams: true });
+
+/* ---------------------------------------------------------------------
+   Código secreto do agendamento (#25)
+   Quem agenda recebe um código aleatório. Só com ele dá para ver,
+   cancelar ou remarcar o horário: o id sozinho não basta.
+--------------------------------------------------------------------- */
+function codigoValido(valor) {
+  const codigo = String(valor ?? "");
+  // mesma resposta de "não existe": não entrega se o id existe ou não
+  if (!/^[a-f0-9]{32}$/.test(codigo)) throw new ErroHttp(404, "Agendamento não encontrado.");
+  return codigo;
+}
+
+// agendamento do cliente, conferindo id + código. Já diz se ainda dá para cancelar.
+async function buscarDoCliente(db, barbearia, id, codigo) {
+  const { rows: [ag] } = await db.query(
+    `SELECT a.id, a.status, a.servico_id, s.nome AS servico, a.barbeiro_id, b.nome AS barbeiro,
+            b.telefone AS barbeiro_telefone, a.preco_cobrado AS preco,
+            to_char(a.inicio AT TIME ZONE $4, 'YYYY-MM-DD') AS data,
+            to_char(a.inicio AT TIME ZONE $4, 'HH24:MI')    AS horario,
+            ba.antecedencia_cancelamento_horas             AS antecedencia_horas,
+            (a.status = 'confirmado'
+              AND a.inicio - make_interval(hours => ba.antecedencia_cancelamento_horas) > now()) AS pode_cancelar
+       FROM agendamentos a
+       JOIN servicos s    ON s.id = a.servico_id
+       JOIN barbeiros b   ON b.id = a.barbeiro_id
+       JOIN barbearias ba ON ba.id = a.barbearia_id
+      WHERE a.id = $1 AND a.barbearia_id = $2 AND a.codigo = $3`,
+    [id, barbearia.id, codigo, barbearia.fuso_horario]
+  );
+  if (!ag) throw new ErroHttp(404, "Agendamento não encontrado.");
+  return ag;
+}
+
+// cancela pelo cliente: só confirmado e até X horas antes (regra da barbearia)
+async function cancelarDoCliente(db, barbearia, id, codigo) {
+  const ag = await buscarDoCliente(db, barbearia, id, codigo);
+  if (ag.status !== "confirmado") {
+    throw new ErroHttp(409, "Esse horário não está mais confirmado.");
+  }
+  if (!ag.pode_cancelar) {
+    throw new ErroHttp(409,
+      `Só dá para cancelar ou remarcar até ${ag.antecedencia_horas} horas antes. ` +
+      "Chame o seu barbeiro no WhatsApp.");
+  }
+  await db.query(
+    "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1 AND status = 'confirmado'",
+    [ag.id]
+  );
+  return ag;
+}
 
 /**
  * Horários livres de um barbeiro num dia, para um serviço de `duracao` minutos.
@@ -213,10 +265,19 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   const horario = horarioValido(corpo.horario);
   const nome = textoValido(corpo.nome, "nome", 2, 150);
   const telefone = telefoneValido(corpo.telefone);
+  // remarcar (opcional): { id, codigo } do horário antigo
+  const remarcar = corpo.remarcar
+    ? { id: idValido(corpo.remarcar.id, "remarcar.id"), codigo: codigoValido(corpo.remarcar.codigo) }
+    : null;
+  const codigo = randomBytes(16).toString("hex"); // 32 letras/números aleatórios
 
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
+
+    // remarcar: cancela o horário antigo dentro da MESMA transação.
+    // Se o novo der errado, o ROLLBACK lá embaixo desfaz o cancelamento.
+    if (remarcar) await cancelarDoCliente(db, req.barbearia, remarcar.id, remarcar.codigo);
 
     const barbeiro = await buscarBarbeiro(db, req.barbearia.id, barbeiroId);
     const servico = await buscarServico(db, req.barbearia.id, servicoId);
@@ -253,17 +314,17 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
     const { rows: [agendamento] } = await db.query(
       `INSERT INTO agendamentos
          (barbearia_id, cliente_id, cliente_nome, cliente_telefone,
-          barbeiro_id, servico_id, inicio, fim, preco_cobrado, origem)
+          barbeiro_id, servico_id, inicio, fim, preco_cobrado, origem, codigo)
        VALUES ($1, $2, $3, $4, $5, $6,
                ($7::date + $8::time) AT TIME ZONE $9,
                ($7::date + $8::time) AT TIME ZONE $9 + make_interval(mins => $10),
-               $11, 'site')
+                $11, 'site', $12)
        RETURNING id, status`,
       [
         req.barbearia.id, cliente.id, nome, telefone,
         barbeiroId, servicoId,
         data, horario, req.barbearia.fuso_horario, servico.duracao_min,
-        servico.preco,
+        servico.preco, codigo
       ]
     );
 
@@ -271,8 +332,11 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
 
     res.status(201).json({
       id: agendamento.id,
+      codigo,
       status: agendamento.status,
+      barbeiro_id: barbeiroId,
       barbeiro: barbeiro.nome,
+      servico_id: servicoId,
       servico: servico.nome,
       data,
       horario,
@@ -285,4 +349,24 @@ rotasPublicas.post("/agendamentos", limiteAgendamento, async (req, res) => {
   } finally {
     db.release();
   }
+});
+
+/* ---------------------------------------------------------------------
+   GET /api/:slug/agendamentos/:id?codigo=...
+   -> o agendamento, com o status atual e se ainda dá para cancelar
+--------------------------------------------------------------------- */
+rotasPublicas.get("/agendamentos/:id", async (req, res) => {
+  const id = idValido(req.params.id, "id");
+  const codigo = codigoValido(req.query.codigo);
+  res.json(await buscarDoCliente(pool, req.barbearia, id, codigo));
+});
+
+/* ---------------------------------------------------------------------
+   POST /api/:slug/agendamentos/:id/cancelar   { codigo }
+--------------------------------------------------------------------- */
+rotasPublicas.post("/agendamentos/:id/cancelar", async (req, res) => {
+  const id = idValido(req.params.id, "id");
+  const codigo = codigoValido(req.body?.codigo);
+  await cancelarDoCliente(pool, req.barbearia, id, codigo);
+  res.json({ id, status: "cancelado" });
 });
