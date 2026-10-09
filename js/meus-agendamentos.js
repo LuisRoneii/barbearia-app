@@ -147,7 +147,7 @@
       acoes.innerHTML = `<p class="meu__aviso">Para cancelar ou remarcar, chame o seu barbeiro no <a href="index.html#contato">WhatsApp</a>.</p>`;
     } else if (a.pode_cancelar) {
       acoes.innerHTML = `
-        <a class="btn btn--outline" href="index.html?remarcar=${a.id}&servico=${a.servico_id}&barbeiro=${a.barbeiro_id}#agendar"
+        <a class="btn btn--outline" href="index.html?remarcar=${a.id}&servico=${a.servico_id}&barbeiro=${a.barbeiro_id}#agendar">Remarcar</a>
         <button type="button" class="btn btn--perigo">Cancelar</button>`;
       acoes.querySelector("button").addEventListener("click", (e) => cancelar(a, e.currentTarget));
     } else if (status === "confirmado") {
