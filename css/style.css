@@ -213,7 +213,7 @@ p { margin: 0 0 1em; color: var(--gray); }
   max-height: 0;
   transition: max-height 0.25s ease;
 }
-.mobile-nav.is-open { max-height: 260px; }
+.mobile-nav.is-open { max-height: 400px; }
 .mobile-nav a {
   padding: 16px 24px;
   border-bottom: 1px solid var(--line);
