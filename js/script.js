@@ -543,12 +543,16 @@
 
     gravarLocal(LS_AGENDAMENTOS, proximos); // limpa os que já passaram
 
+
+    // cancelado ou falta continua guardado (aparece em "Meus horários"), mas não é "próximo"
+    const ativos = proximos.filter((a) => !a.status || a.status === "confirmado");
+
     listaAgendamentos.innerHTML = "";
-    if (proximos.length === 0) {
+    if (ativos.length === 0) {
       itemInformativo(listaAgendamentos, "Nenhum horário marcado por este aparelho.", "vazio");
       return;
     }
-    proximos.forEach((a) => {
+    ativos.forEach((a) => {
       const li = document.createElement("li");
       li.innerHTML = `<span>${esc(a.servico)} · ${esc(a.barbeiro)}</span><span>${formatarData(a.data)} · ${esc(a.horario)}</span>`;
       listaAgendamentos.appendChild(li);

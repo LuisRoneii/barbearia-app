@@ -106,9 +106,10 @@
     }));
 
     const validos = atualizados.filter(Boolean);
-    // guarda de volta só o necessário (o resto vem sempre da API)
-      gravarLocal(LS_AGENDAMENTOS, validos.map(({ id, codigo, servico, barbeiro, data, horario, preco }) =>
-      ({ id, codigo, servico, barbeiro, data, horario, preco })));
+    // guarda de volta só o necessário (o resto vem sempre da API).
+    // O status vai junto para a página inicial não listar horário cancelado.
+    gravarLocal(LS_AGENDAMENTOS, validos.map(({ id, codigo, status, servico, barbeiro, data, horario, preco }) =>
+      ({ id, codigo, status, servico, barbeiro, data, horario, preco })));
 
     if (!validos.length) {
       lista.innerHTML = `<li class="meus__vazio">Nenhum horário encontrado. <a href="index.html#agendar">Agendar agora</a></li>`;
@@ -151,7 +152,8 @@
         <button type="button" class="btn btn--perigo">Cancelar</button>`;
       acoes.querySelector("button").addEventListener("click", (e) => cancelar(a, e.currentTarget));
     } else if (status === "confirmado") {
-      const whats = a.barbeiro_telefone ? `https://wa.me/${a.barbeiro_telefone}` : "index.html#contato";
+      const tel = a.barbeiro_telefone;
+      const whats = tel ? `https://wa.me/${tel.startsWith("55") ? tel : "55" + tel}` : "index.html#contato";
       acoes.innerHTML = `<p class="meu__aviso">Faltam menos de ${a.antecedencia_horas || 3} horas. Para mudar, chame o seu barbeiro no
         <a href="${whats}"${a.barbeiro_telefone ? ' target="_blank" rel="noopener"' : ""}>WhatsApp</a>.</p>`;
     }
