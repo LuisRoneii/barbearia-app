@@ -960,7 +960,7 @@ input:focus, select:focus {
 
 
 /* tela de confirmação depois de agendar */
-.confirmado { text-align: center; outline: none; }
+.confirmado { text-align: center; outline: none; scroll-margin-top: 90px; } /* não fica atrás do cabeçalho fixo */
 .confirmado__selo {
   display: inline-flex;
   align-items: center;

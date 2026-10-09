@@ -481,7 +481,10 @@
       <dt>Horário</dt><dd>${esc(ag.horario)} às ${horaFim(ag.horario, ag.duracao_min)}</dd>
       <dt>Valor</dt><dd>${formatarPreco(ag.preco)}</dd>`;
     irParaPasso(5);
-    $("confirmado").focus(); // leitor de tela anuncia e a página rola até aqui
+    // leitor de tela anuncia; a rolagem é feita à parte para mostrar a tela desde o topo
+    // (no celular o passo 4 é mais alto e o focus() sozinho deixava o título fora da tela)
+    $("confirmado").focus({ preventScroll: true });
+    $("confirmado").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   $("btn-novo-agendamento").addEventListener("click", resetarWizard);
