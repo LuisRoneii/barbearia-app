@@ -60,10 +60,15 @@ async function cancelarDoCliente(db, barbearia, id, codigo) {
       `Só dá para cancelar ou remarcar até ${ag.antecedencia_horas} horas antes. ` +
       "Chame o seu barbeiro no WhatsApp.");
   }
-  await db.query(
+  const { rowCount } = await db.query(
     "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1 AND status = 'confirmado'",
     [ag.id]
   );
+  // 0 linhas: outra requisição cancelou no mesmo instante (clique duplo em "remarcar",
+  // duas abas). Sem esse erro, a remarcação seguiria e criaria um segundo horário.
+  if (rowCount === 0) {
+    throw new ErroHttp(409, "Esse horário não está mais confirmado.");
+  }
   return ag;
 }
 
