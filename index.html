@@ -194,6 +194,18 @@
           <button class="link-voltar" data-voltar="3">&larr; Voltar</button>
         </div>
 
+        <!-- Passo 5: confirmação (só aparece depois de marcar) -->
+        <div class="wizard__step confirmado" data-step-panel="5" id="confirmado" tabindex="-1">
+          <span class="confirmado__selo" aria-hidden="true">&#10003;</span>
+          <h3 class="confirmado__titulo" id="confirmado-titulo">Horário confirmado!</h3>
+          <dl class="confirmado__dados" id="confirmado-dados"></dl>
+          <p class="confirmado__nota">Precisa cancelar ou remarcar? Use <a href="meus-agendamentos.html">Meus horários</a> neste mesmo aparelho, até 3 horas antes.</p>
+          <div class="confirmado__acoes">
+            <a class="btn btn--primary" href="meus-agendamentos.html">Ver meus horários</a>
+            <button type="button" class="btn btn--outline" id="btn-novo-agendamento">Marcar outro horário</button>
+          </div>
+        </div>
+
         <div class="meus-agendamentos" id="meus-agendamentos">
           <h3>Seus próximos horários</h3>
           <ul id="lista-agendamentos"></ul>

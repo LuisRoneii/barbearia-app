@@ -957,3 +957,36 @@ input:focus, select:focus {
 }
 .wizard__remarcando strong { color: var(--gold); }
 .wizard__remarcando a { margin-left: 4px; }
+
+
+/* tela de confirmação depois de agendar */
+.confirmado { text-align: center; outline: none; scroll-margin-top: 90px; } /* não fica atrás do cabeçalho fixo */
+.confirmado__selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  color: var(--gold);
+  font-size: 1.6rem;
+  margin-bottom: 14px;
+}
+.confirmado__titulo { font-size: 1.4rem; margin-bottom: 20px; }
+.confirmado__dados {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  text-align: left;
+  background: var(--black);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 0 0 18px;
+}
+.confirmado__dados dt { color: var(--gray-soft); font-size: 0.85rem; }
+.confirmado__dados dd { margin: 0; color: var(--white); font-weight: 600; text-align: right; }
+.confirmado__nota { font-size: 0.85rem; color: var(--gray); margin-bottom: 20px; }
+.confirmado__acoes { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
