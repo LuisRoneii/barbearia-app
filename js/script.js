@@ -94,7 +94,7 @@
   const FAQ = [
     { pergunta: "Preciso criar conta pra agendar?", resposta: "Não. Você escolhe o serviço, o barbeiro e o horário e informa só seu nome e WhatsApp." },
     { pergunta: "Posso escolher o barbeiro?", resposta: "Sim. Você vê só os horários livres na agenda do barbeiro que escolher." },
-    { pergunta: "Como cancelo ou remarco um horário?", resposta: "Chame no WhatsApp do seu barbeiro até 3 horas antes do horário marcado. Os links estão na seção de contato." },
+    { pergunta: "Como cancelo ou remarco um horário?", resposta: "Pela página Meus horários, no menu, até 3 horas antes do horário marcado. Depois disso, chame o seu barbeiro no WhatsApp (os links estão na seção de contato)." },
     { pergunta: "Abrem em feriados?", resposta: "Não. Nos feriados a barbearia fica fechada, e esses dias aparecem como \"Feriado\" na hora de agendar." },
     { pergunta: "Quais as formas de pagamento?", resposta: "Dinheiro, PIX e cartão de débito ou crédito." },
   ];
@@ -276,6 +276,14 @@
 
   const estado = { servico: null, barbeiro: null, data: null, horario: null };
 
+
+  /* Remarcar: vindo de "Meus horários" com index.html?remarcar=ID&servico=X&barbeiro=Y
+     O código secreto não vai na URL: fica guardado neste aparelho. */
+  const parametros = new URLSearchParams(location.search);
+  let remarcando = lerLocal(LS_AGENDAMENTOS, [])
+    .find((a) => a.id === Number(parametros.get("remarcar")) && a.codigo) || null;
+  const avisoRemarcar = $("aviso-remarcar");
+
   function irParaPasso(n) {
     wizardSteps.querySelectorAll("li").forEach((li) => {
       const passo = Number(li.dataset.step);
@@ -391,6 +399,13 @@
         wizardDias.appendChild(li);
       });
 
+          // remarcando: deixa claro qual horário vai ser trocado
+    if (remarcando) {
+      avisoRemarcar.innerHTML = `Remarcando seu horário de <strong>${formatarData(remarcando.data)} às ${esc(remarcando.horario)}</strong>.
+        Ao confirmar o novo, o antigo é cancelado. <a href="index.html#agendar">Desistir</a>`;
+      avisoRemarcar.classList.remove("hidden");
+    }
+
     // avisa sobre feriados que aparecem na lista
     const feriados = dias.filter((d) => d.situacao === "bloqueado" && /feriado/i.test(d.motivo || ""));
     if (feriados.length) {
@@ -486,16 +501,25 @@
           data: estado.data,
           horario: estado.horario,
           nome,
+          // remarcar: a API cancela o antigo na mesma transação
+          remarcar: remarcando ? { id: remarcando.id, codigo: remarcando.codigo } : undefined,
           telefone,
         }),
       });
 
       gravarLocal(LS_CLIENTE, { nome, telefone });
-      const meus = lerLocal(LS_AGENDAMENTOS, []);
+      // remarcou: o antigo sai da lista deste aparelho
+      const meus = lerLocal(LS_AGENDAMENTOS, []).filter((a) => !remarcando || a.id !== remarcando.id);
       meus.push(criado);
       gravarLocal(LS_AGENDAMENTOS, meus);
 
-      mostrarMsg(msgAgendamento, `Horário confirmado! Te esperamos dia ${formatarData(criado.data)} às ${criado.horario}.`, false);
+      const foiRemarcado = !!remarcando;
+      remarcando = null;
+      avisoRemarcar.classList.add("hidden");
+      history.replaceState(null, "", location.pathname + "#agendar"); // tira o ?remarcar da URL
+
+      mostrarMsg(msgAgendamento,
+        `${foiRemarcado ? "Horário remarcado" : "Horário confirmado"}! Te esperamos dia ${formatarData(criado.data)} às ${criado.horario}.`, false);
       renderizarMeusAgendamentos();
       setTimeout(resetarWizard, 2500);
     } catch (erro) {
@@ -519,12 +543,16 @@
 
     gravarLocal(LS_AGENDAMENTOS, proximos); // limpa os que já passaram
 
+
+    // cancelado ou falta continua guardado (aparece em "Meus horários"), mas não é "próximo"
+    const ativos = proximos.filter((a) => !a.status || a.status === "confirmado");
+
     listaAgendamentos.innerHTML = "";
-    if (proximos.length === 0) {
+    if (ativos.length === 0) {
       itemInformativo(listaAgendamentos, "Nenhum horário marcado por este aparelho.", "vazio");
       return;
     }
-    proximos.forEach((a) => {
+    ativos.forEach((a) => {
       const li = document.createElement("li");
       li.innerHTML = `<span>${esc(a.servico)} · ${esc(a.barbeiro)}</span><span>${formatarData(a.data)} · ${esc(a.horario)}</span>`;
       listaAgendamentos.appendChild(li);
@@ -534,7 +562,7 @@
   /* ---------------------------------------------------------------------
      Inicialização
   --------------------------------------------------------------------- */
-  async function carregarDadosDaApi() {
+    async function carregarDadosDaApi() {
     itemInformativo(wizardServicos, "Carregando serviços…");
     try {
       [SERVICOS, BARBEIROS] = await Promise.all([api("/servicos"), api("/barbeiros")]);
@@ -548,6 +576,19 @@
     renderizarEquipe();
     renderizarServicos();
     resetarWizard();
+    iniciarRemarcar();
+  }
+
+  // remarcar: já entra no passo 3 (dia) com o serviço e o barbeiro do horário antigo
+  function iniciarRemarcar() {
+    if (!remarcando) return;
+    const servico = SERVICOS.find((s) => s.id === Number(parametros.get("servico")));
+    const barbeiro = BARBEIROS.find((b) => b.id === Number(parametros.get("barbeiro")));
+    if (!servico || !barbeiro) return;
+    estado.servico = servico;
+    estado.barbeiro = barbeiro;
+    renderizarPassoDias();
+    irParaPasso(3);
   }
 
   function init() {
