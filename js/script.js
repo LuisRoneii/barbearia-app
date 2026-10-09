@@ -471,6 +471,21 @@
     (inputNome.value ? inputTelefone : inputNome).focus();
   }
 
+  /* Tela de confirmação: mostra o que foi marcado, com os dados que a API devolveu */
+  function mostrarConfirmacao(ag, foiRemarcado) {
+    $("confirmado-titulo").textContent = foiRemarcado ? "Horário remarcado!" : "Horário confirmado!";
+    $("confirmado-dados").innerHTML = `
+      <dt>Serviço</dt><dd>${esc(ag.servico)}</dd>
+      <dt>Barbeiro</dt><dd>${esc(ag.barbeiro)}</dd>
+      <dt>Dia</dt><dd>${formatarData(ag.data)}</dd>
+      <dt>Horário</dt><dd>${esc(ag.horario)} às ${horaFim(ag.horario, ag.duracao_min)}</dd>
+      <dt>Valor</dt><dd>${formatarPreco(ag.preco)}</dd>`;
+    irParaPasso(5);
+    $("confirmado").focus(); // leitor de tela anuncia e a página rola até aqui
+  }
+
+  $("btn-novo-agendamento").addEventListener("click", resetarWizard);
+
   formDados.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!estado.horario) {
@@ -518,10 +533,8 @@
       avisoRemarcar.classList.add("hidden");
       history.replaceState(null, "", location.pathname + "#agendar"); // tira o ?remarcar da URL
 
-      mostrarMsg(msgAgendamento,
-        `${foiRemarcado ? "Horário remarcado" : "Horário confirmado"}! Te esperamos dia ${formatarData(criado.data)} às ${criado.horario}.`, false);
       renderizarMeusAgendamentos();
-      setTimeout(resetarWizard, 2500);
+      mostrarConfirmacao(criado, foiRemarcado);
     } catch (erro) {
       // alguém pegou o horário: recarrega a lista primeiro (ela limpa a mensagem)
       if (erro.status === 409) await renderizarPassoHorarios();
