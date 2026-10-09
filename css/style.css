@@ -894,3 +894,53 @@ input:focus, select:focus {
   .btn--ghost { padding: 8px 10px; font-size: 0.82rem; }
   .logo__word { font-size: 1rem; }
 }
+
+
+/* ---------- Página "Meus horários" (meus-agendamentos.html) ---------- */
+.meus { padding: 72px 0 100px; min-height: 60vh; }
+.meus__titulo { font-size: 2rem; margin-bottom: 8px; }
+.meus__sub { max-width: 52ch; margin-bottom: 32px; }
+.meus__lista { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.meus__vazio { color: var(--gray); padding: 24px 0; }
+.meus__nota { font-size: 0.82rem; color: var(--gray-soft); max-width: 60ch; }
+
+.meu {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 16px 20px;
+  align-items: center;
+  padding: 18px 20px;
+  background: var(--black-elev);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+}
+.meu--cancelado, .meu--nao_compareceu { border-left-color: var(--line); opacity: 0.6; }
+.meu--concluido { border-left-color: var(--gold-dim); }
+.meu__quando { display: flex; flex-direction: column; }
+.meu__data { color: var(--gray); font-size: 0.85rem; text-transform: capitalize; }
+.meu__hora { font-family: var(--font-display); font-size: 1.6rem; color: var(--white); }
+.meu__servico { color: var(--white); font-weight: 600; margin: 0; }
+.meu__detalhe { color: var(--gray); font-size: 0.88rem; margin: 2px 0 6px; }
+.meu__status {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--gray);
+}
+.meu__status--confirmado { border-color: var(--gold-dim); color: var(--gold); }
+.meu__acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.meu__aviso { font-size: 0.82rem; color: var(--gray); margin: 0; max-width: 32ch; text-align: right; }
+.btn--perigo { background: transparent; border-color: #5e2f2a; color: var(--erro); }
+.btn--perigo:hover { border-color: var(--erro); }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+.nav a[aria-current="page"], .mobile-nav a[aria-current="page"] { color: var(--gold); }
+
+@media (max-width: 640px) {
+  .meu { grid-template-columns: 1fr; gap: 10px; }
+  .meu__quando { flex-direction: row; align-items: baseline; gap: 10px; }
+  .meu__acoes { justify-content: flex-start; }
+  .meu__aviso { text-align: left; }
+}

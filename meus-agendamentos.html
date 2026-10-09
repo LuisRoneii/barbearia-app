@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meus horários — ZT Barber Club</title>
+<meta name="description" content="Veja, cancele ou remarque os horários que você marcou na ZT Barber Club.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0a09">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== HEADER (mesmo do site, com links de volta para a página inicial) ===== -->
+<header class="header" id="header">
+  <div class="container header__inner">
+    <a href="index.html" class="logo" aria-label="ZT Barber Club - início">
+      <img class="logo__marca" src="img/logo-marca.webp" alt="" width="293" height="240">
+      <span class="logo__word">Barber Club</span>
+    </a>
+
+    <nav class="nav" id="nav">
+      <a href="index.html#equipe">Equipe</a>
+      <a href="index.html#servicos">Serviços</a>
+      <a href="index.html#portfolio">Portfólio</a>
+      <a href="index.html#agendar">Agendar</a>
+      <a href="meus-agendamentos.html" aria-current="page">Meus horários</a>
+      <a href="index.html#contato">Contato</a>
+    </nav>
+
+    <div class="header__actions">
+      <a href="index.html#agendar" class="btn btn--ghost">Agendar</a>
+      <button class="hamburger" id="hamburger" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-nav" id="mobile-nav">
+  <a href="index.html#equipe">Equipe</a>
+  <a href="index.html#servicos">Serviços</a>
+  <a href="index.html#portfolio">Portfólio</a>
+  <a href="index.html#agendar">Agendar</a>
+  <a href="meus-agendamentos.html" aria-current="page">Meus horários</a>
+  <a href="index.html#contato">Contato</a>
+</div>
+
+<main>
+  <section class="meus">
+    <div class="container">
+      <p class="section-label">Meus horários</p>
+      <h1 class="meus__titulo">Seus agendamentos</h1>
+      <p class="meus__sub">Os horários marcados por este aparelho. Dá para cancelar ou remarcar até 3 horas antes.</p>
+
+      <p class="form-msg" id="msg-meus" role="status"></p>
+      <ul class="meus__lista" id="lista-meus"></ul>
+
+      <p class="meus__nota">Marcou por outro celular ou computador? Os horários aparecem só no aparelho em que foram marcados.
+        Nesse caso, chame o seu barbeiro no <a href="index.html#contato">WhatsApp</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <span class="logo logo--footer">
+      <img class="logo__marca" src="img/logo-marca.webp" alt="" width="293" height="240">
+      <span class="logo__word">Barber Club</span>
+    </span>
+    <p>&copy; <span id="ano"></span> ZT Barber Club. Todos os direitos reservados. <a class="footer__painel" href="painel.html">Área do barbeiro</a></p>
+  </div>
+</footer>
+
+<script src="js/meus-agendamentos.js"></script>
+</body>
+</html>
