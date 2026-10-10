@@ -94,8 +94,14 @@ CREATE DATABASE zt_barber;
 
 **Banco criado antes de alguma atualização?** O `schema.sql` e o `seed.sql` só valem para
 banco novo. Num banco que já existe, rode em ordem os scripts numerados que ainda não
-rodou: `002-combos-sobrancelha.sql`, `003-foto-train.sql` e `004-planos.sql`. Eles podem
-rodar mais de uma vez sem problema.
+rodou: `002-combos-sobrancelha.sql`, `003-foto-train.sql`, `004-planos.sql`,
+`005-codigo-agendamento.sql`, `006-telefone-barbeiros.sql`, `007-foto-zefe.sql` e
+`008-confere-foto-zefe.sql`. Eles podem rodar mais de uma vez sem problema.
+
+Antes dos `\i`, rode `\set ON_ERROR_STOP on`: assim o psql para no primeiro erro, em vez
+de imprimir uma linha e seguir para o próximo script. A `008` dá erro de propósito se não
+achar exatamente um barbeiro "Zefe" na barbearia 1. Nesse caso, confira o nome no banco
+antes de continuar.
 
 ### 2. API
 
