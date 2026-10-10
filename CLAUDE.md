@@ -55,3 +55,6 @@ Sempre rode `npm test` antes de dizer que uma tarefa terminou.
 - VPS: Postgres escuta só em `localhost` (porta 5432 fechada no firewall); a API (porta 3000) só é acessada pelo Nginx.
 - VPS: HTTPS obrigatório (Let's Encrypt), `TRUST_PROXY=1` no `.env` de produção, SSH só com chave (sem senha e sem login de root), atualizações de segurança automáticas e backup diário do banco guardado fora da VPS.
 - Ao terminar uma feature que mexe com auth, pagamentos ou dados pessoais, rode a habilidade `revisao-seguranca`.
+
+## Antes do deploy na VPS
+- Instalar o plugin claude-security e rodar a varredura no projeto inteiro antes do primeiro deploy. Avise o Luís disso sempre que o assunto for deploy, VPS, Hostinger ou Vultr.
