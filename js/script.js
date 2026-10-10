@@ -74,7 +74,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Conteúdo fixo: portfólio, depoimentos, FAQ
+     Conteúdo fixo: portfólio e FAQ
   --------------------------------------------------------------------- */
   // fotos em img/portfolio/ (720x960, JPG). Para trocar, substitua o arquivo
   // mantendo o nome, ou edite esta lista.
@@ -85,11 +85,6 @@
     { foto: "img/portfolio/corte-4.jpg", legenda: "Buzz cut com degradê" },
   ];
 
-  const DEPOIMENTOS = [
-    { texto: "Marquei pelo site, cheguei e já fui atendido no horário certo. Corte impecável.", autor: "Gabriel M." },
-    { texto: "Entendem exatamente o que eu peço. Não troco de barbearia há 2 anos.", autor: "Diego A." },
-    { texto: "Ambiente simples, sem enrolação, e o resultado sempre vem melhor do que eu esperava.", autor: "Rafael S." },
-  ];
 
   const FAQ = [
     { pergunta: "Preciso criar conta pra agendar?", resposta: "Não. Você escolhe o serviço, o barbeiro e o horário e informa só seu nome e WhatsApp." },
@@ -167,7 +162,7 @@
   });
 
   /* ---------------------------------------------------------------------
-     Seções: equipe e serviços (da API) / portfólio / depoimentos / FAQ
+     Seções: equipe e serviços (da API) / portfólio / FAQ
   --------------------------------------------------------------------- */
   let SERVICOS = [];
   let BARBEIROS = [];
@@ -224,19 +219,6 @@
     });
   }
 
-  function renderizarDepoimentos() {
-    const ul = $("lista-depoimentos");
-    ul.innerHTML = "";
-    DEPOIMENTOS.forEach((d) => {
-      const li = document.createElement("li");
-      li.className = "depoimento";
-      li.innerHTML = `
-        <div class="depoimento__estrelas">★★★★★</div>
-        <p class="depoimento__texto">"${esc(d.texto)}"</p>
-        <p class="depoimento__autor">${esc(d.autor)}</p>`;
-      ul.appendChild(li);
-    });
-  }
 
   function renderizarFaq() {
     const ul = $("lista-faq");
@@ -610,7 +592,6 @@
   function init() {
     $("ano").textContent = new Date().getFullYear();
     renderizarPortfolio();
-    renderizarDepoimentos();
     renderizarFaq();
     renderizarMeusAgendamentos();
     carregarDadosDaApi();

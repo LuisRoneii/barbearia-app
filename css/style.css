@@ -460,26 +460,6 @@ p { margin: 0 0 1em; color: var(--gray); }
   transform: scale(1.03);
 }
 
-/* ---------- Depoimentos ---------- */
-.depoimentos { padding: 100px 0; border-bottom: 1px solid var(--line); background: var(--black-soft); }
-.depoimentos__title { font-size: 2rem; margin-bottom: 40px; }
-
-.depoimentos__lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-.depoimento {
-  border-left: 2px solid var(--gold);
-  padding-left: 20px;
-}
-.depoimento__estrelas { color: var(--gold); font-size: 0.85rem; margin-bottom: 10px; letter-spacing: 2px; }
-.depoimento__texto { color: var(--white); font-size: 0.95rem; margin-bottom: 12px; }
-.depoimento__autor { color: var(--gray); font-size: 0.85rem; }
-
 /* ---------- FAQ ---------- */
 .faq { padding: 100px 0; border-bottom: 1px solid var(--line); }
 .faq__title { font-size: 2rem; margin-bottom: 40px; }
@@ -851,8 +831,7 @@ input:focus, select:focus {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  .equipe__lista,
-  .depoimentos__lista { grid-template-columns: repeat(2, 1fr); }
+  .equipe__lista { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 860px) {
@@ -879,8 +858,7 @@ input:focus, select:focus {
   }
   .servico__meta { gap: 14px; }
 
-  .equipe__lista,
-  .depoimentos__lista { grid-template-columns: 1fr; }
+  .equipe__lista { grid-template-columns: 1fr; }
   .portfolio__grid { grid-template-columns: repeat(2, 1fr); }
   .wizard__steps { gap: 14px; }
 }
@@ -990,3 +968,20 @@ input:focus, select:focus {
 .confirmado__nota { font-size: 0.85rem; color: var(--gray); margin-bottom: 20px; }
 .confirmado__acoes { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
+
+/* ---------- Política de privacidade (privacidade.html) ---------- */
+.politica { padding: 72px 0 100px; }
+.politica__corpo { max-width: 72ch; }
+.politica__titulo { font-size: 2rem; margin-bottom: 8px; }
+.politica__versao { font-size: 0.85rem; color: var(--gray-soft); margin-bottom: 32px; }
+.politica h2 { font-size: 1.25rem; margin: 40px 0 12px; }
+.politica p, .politica li { color: var(--gray); }
+.politica ul { padding-left: 20px; margin: 0 0 1em; }
+.politica li { margin-bottom: 6px; }
+.politica strong { color: var(--white); }
+.politica__preencher { color: var(--erro); font-weight: 600; } /* trocar antes de publicar */
+
+/* "Esquecer meus dados" em Meus horários */
+.meus__esquecer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); max-width: 60ch; }
+.meus__esquecer p { font-size: 0.85rem; color: var(--gray-soft); }
+.politica a, .meus__esquecer a { color: var(--gold); border-bottom: 1px solid var(--gold-dim); }

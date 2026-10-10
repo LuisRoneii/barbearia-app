@@ -15,6 +15,7 @@
   const ehLocal = ["localhost", "127.0.0.1", ""].includes(location.hostname);
   const API_URL = ehLocal ? `http://localhost:3000/api/${SLUG}` : `/api/${SLUG}`;
   const LS_AGENDAMENTOS = "zt_meus_agendamentos";
+  const LS_CLIENTE = "zt_cliente"; // nome e WhatsApp guardados pelo agendamento (script.js)
 
   const NOME_STATUS = {
     confirmado: "Confirmado",
@@ -175,6 +176,24 @@
       botao.disabled = false;
     }
   }
+
+  /* ---------------------------------------------------------------------
+     Esquecer meus dados: apaga o que o site guardou NESTE aparelho.
+     Os horários continuam marcados na barbearia; só o aparelho esquece.
+  --------------------------------------------------------------------- */
+  $("btn-esquecer").addEventListener("click", () => {
+    const temHorario = lerLocal(LS_AGENDAMENTOS, []).some((a) => a.codigo && (!a.status || a.status === "confirmado"));
+    const aviso = temHorario
+      ? "Apagar seu nome, WhatsApp e horários deste aparelho?\n\nSeus horários continuam marcados, mas para cancelar ou remarcar você vai precisar chamar o barbeiro no WhatsApp."
+      : "Apagar seu nome, WhatsApp e horários deste aparelho?";
+    if (!confirm(aviso)) return;
+    try {
+      localStorage.removeItem(LS_AGENDAMENTOS);
+      localStorage.removeItem(LS_CLIENTE);
+    } catch (e) { /* modo privado: não havia nada guardado */ }
+    carregar();
+    mostrarMsg("Pronto. Este aparelho não guarda mais seus dados.", false);
+  });
 
   /* ---------------------------------------------------------------------
      Menu mobile e ano do rodapé
