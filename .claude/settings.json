@@ -1,6 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
+    "allow": [
+      "Bash(npm run dev *)",
+      "Bash(npm test *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
     "deny": [
       "Read(./**/.env)",
       "Read(./**/.env.*)",
@@ -16,13 +23,14 @@
     "ask": [
       "Bash(git push *)",
       "Bash(npm publish *)"
-    ],
-    "allow": [
-      "Bash(npm run dev *)",
-      "Bash(npm test *)",
-      "Bash(git status *)",
-      "Bash(git diff *)",
-      "Bash(git log *)"
     ]
+  },
+  "enabledPlugins": {
+    "security-guidance@anthropic-plugin-directory": true,
+    "code-review-anthropics@anthropic-plugin-directory": true,
+    "commit-commands@anthropic-plugin-directory": true,
+    "feature-dev@anthropic-plugin-directory": true,
+    "frontend-design@anthropic-plugin-directory": true,
+    "typescript-lsp@anthropic-plugin-directory": true
   }
 }
