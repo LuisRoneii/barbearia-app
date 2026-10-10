@@ -6,3 +6,5 @@ node_modules/
 
 # variáveis de ambiente (senha do banco etc.) — nunca subir
 .env
+.env.*
+!.env.example
