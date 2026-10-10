@@ -8,9 +8,9 @@ VALUES (1, 'ZT Barber', 'zt-barber',
         'Rua Dr. Getúlio Vargas, 1140, Centro, Rio Negro - PR, 83380-001',
         3);   -- cliente pode cancelar até 3 horas antes
 
-INSERT INTO barbeiros (id, barbearia_id, nome, especialidade, foto_url) VALUES
-  (1, 1, 'Train', 'Cortes, barba e sobrancelha', 'img/equipe/train.jpg'),
-  (2, 1, 'Zefe',  'Cortes, barba e sobrancelha', NULL);
+INSERT INTO barbeiros (id, barbearia_id, nome, especialidade, telefone, foto_url) VALUES
+  (1, 1, 'Train', 'Cortes, barba e sobrancelha', '47984356708', 'img/equipe/train.jpg'),
+  (2, 1, 'Zefe',  'Cortes, barba e sobrancelha', '47984565185', NULL);
 
 INSERT INTO servicos (barbearia_id, nome, duracao_min, preco) VALUES
   (1, 'Corte',         30, 35.00),
