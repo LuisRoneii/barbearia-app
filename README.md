@@ -96,12 +96,14 @@ CREATE DATABASE zt_barber;
 banco novo. Num banco que já existe, rode em ordem os scripts numerados que ainda não
 rodou: `002-combos-sobrancelha.sql`, `003-foto-train.sql`, `004-planos.sql`,
 `005-codigo-agendamento.sql`, `006-telefone-barbeiros.sql`, `007-foto-zefe.sql` e
-`008-confere-foto-zefe.sql`. Eles podem rodar mais de uma vez sem problema.
+`008-confere-foto-zefe.sql`. Eles podem rodar mais de uma vez sem problema, com uma
+exceção: a `008` dá erro de propósito se não achar exatamente um barbeiro "Zefe" ativo na
+barbearia 1. Nesse caso, confira o nome no banco antes de continuar.
 
-Antes dos `\i`, rode `\set ON_ERROR_STOP on`: assim o psql para no primeiro erro, em vez
-de imprimir uma linha e seguir para o próximo script. A `008` dá erro de propósito se não
-achar exatamente um barbeiro "Zefe" na barbearia 1. Nesse caso, confira o nome no banco
-antes de continuar.
+Rode **um `\i` por vez** e confira se apareceu `ERROR` antes de passar para o próximo. Se
+colar vários `\i` de uma vez, o psql imprime o erro e segue para os próximos, mesmo com
+`\set ON_ERROR_STOP on`. Pela linha de comando, `psql -v ON_ERROR_STOP=1 -f arquivo.sql`
+para no primeiro erro.
 
 ### 2. API
 
