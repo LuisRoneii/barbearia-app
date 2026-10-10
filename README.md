@@ -94,8 +94,16 @@ CREATE DATABASE zt_barber;
 
 **Banco criado antes de alguma atualização?** O `schema.sql` e o `seed.sql` só valem para
 banco novo. Num banco que já existe, rode em ordem os scripts numerados que ainda não
-rodou: `002-combos-sobrancelha.sql`, `003-foto-train.sql` e `004-planos.sql`. Eles podem
-rodar mais de uma vez sem problema.
+rodou: `002-combos-sobrancelha.sql`, `003-foto-train.sql`, `004-planos.sql`,
+`005-codigo-agendamento.sql`, `006-telefone-barbeiros.sql`, `007-foto-zefe.sql` e
+`008-confere-foto-zefe.sql`. Eles podem rodar mais de uma vez sem problema, com uma
+exceção: a `008` dá erro de propósito se não achar exatamente um barbeiro "Zefe" ativo na
+barbearia 1. Nesse caso, confira o nome no banco antes de continuar; se o Zefe saiu da
+barbearia ou foi desativado, pule a `008`.
+
+Rode **um `\i` por vez** e confira se apareceu `ERROR` antes de passar para o próximo: se
+colar vários de uma vez, o psql imprime o erro e segue para os seguintes. Pela linha de
+comando, `psql -v ON_ERROR_STOP=1 -f arquivo.sql` para no primeiro erro.
 
 ### 2. API
 
@@ -200,8 +208,9 @@ Ninguém faz commit direto na `main`: ela só recebe mudanças por Pull Request 
    ```
 
 **Mudou o banco?** Além de atualizar o `schema.sql` e o `seed.sql`, crie um script numerado
-em `database/` (`005-nome.sql`, ...) que possa rodar mais de uma vez sem quebrar, para os
-bancos que já existem.
+em `database/` (`009-nome.sql`, ...) que possa rodar mais de uma vez sem quebrar, para os
+bancos que já existem, e coloque ele na lista de scripts da seção 1. A única exceção é a
+`008`, que dá erro de propósito quando não acha o Zefe (veja a seção 1).
 
 **Nunca vão para o GitHub:** o `backend/.env` (senha do banco e `JWT_SEGREDO`),
 `node_modules`, arquivos zip e dados pessoais de clientes.

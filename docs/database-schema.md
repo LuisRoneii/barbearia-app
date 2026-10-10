@@ -9,6 +9,7 @@ Arquivos:
 
 - `database/schema.sql` — cria as tabelas
 - `database/seed.sql` — dados iniciais da ZT Barber (barbeiros, serviços, expediente, feriados)
+- `database/NNN-*.sql` — migrações para bancos que já existem (a lista e como rodar estão no README)
 
 Regras de negócio confirmadas com o cliente em 28/09/2026.
 
