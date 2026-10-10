@@ -28,14 +28,20 @@
   const $ = (id) => document.getElementById(id);
 
   /* ---------------------------------------------------------------------
-     Sessão (token guardado neste aparelho)
+     Sessão (token guardado só enquanto o navegador estiver aberto)
+     sessionStorage some ao fechar a aba ou o navegador: num computador
+     compartilhado, ninguém abre o painel depois com o login de outro.
+     O token também expira sozinho em 12 horas (na API).
   --------------------------------------------------------------------- */
   let sessao = null;
-  try { sessao = JSON.parse(localStorage.getItem(LS_SESSAO)); } catch (e) { sessao = null; }
+  try {
+    localStorage.removeItem(LS_SESSAO); // apaga o login antigo, de quando ficava guardado de vez
+    sessao = JSON.parse(sessionStorage.getItem(LS_SESSAO));
+  } catch (e) { sessao = null; }
 
   function salvarSessao(s) {
     sessao = s;
-    try { s ? localStorage.setItem(LS_SESSAO, JSON.stringify(s)) : localStorage.removeItem(LS_SESSAO); } catch (e) { /* ok */ }
+    try { s ? sessionStorage.setItem(LS_SESSAO, JSON.stringify(s)) : sessionStorage.removeItem(LS_SESSAO); } catch (e) { /* ok */ }
   }
 
   /* ---------------------------------------------------------------------
